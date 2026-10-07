@@ -1,5 +1,78 @@
 # Underworld_Game
 
+## Play the prototype
+
+The first playable prototype is a small Godot management game: a clickable city
+map, organization statistics, daily orders, and an event feed. The city simulates
+rival decisions, business income, payroll, market demand, loyalty, and police
+pressure each day, including when the player issues no orders.
+
+Requires the standard **Godot 4.6.3** editor; no .NET build, plugins, or external
+services are required.
+
+```bash
+cd Underworld_Game
+godot --path .
+```
+
+Alternatively, import `project.godot` into Godot and press **F6** on the main scene
+or **F5** to run the project. For the prepared cloud environment:
+
+```bash
+cd /workspace/Underworld_Game
+source /workspace/.underworld-dev/env.sh
+godot --editor --path .
+```
+
+Graphical play needs a desktop/display. Simulation and interface tests also run
+headlessly.
+
+### How to play
+
+- Select a district on the city map. Gold is Navarro, purple is Romano, teal is
+  Moretti, and outlined gray districts are independent.
+- Issue up to **two orders per day**. Orders apply immediately. Hover over a
+  button for its requirements and consequences.
+- **Run operation** earns cash and raises heat. **Open business** increases daily
+  revenue. **Recruit member** strengthens the organization but increases payroll.
+- **Claim district** expands into adjacent territory. Independent claims succeed;
+  rival challenges depend on relative members and influence. The $6,000 cost is
+  spent even if a challenge fails. Existing businesses transfer with a district.
+- **Lay low** reduces heat. At 65 heat or above, police may investigate, seize cash,
+  and reduce loyalty. Red dots on the map mark high local surveillance; that
+  district statistic is currently informational, while organization heat drives
+  investigations.
+- Review promotion requests to manage loyalty. Each promotion costs $1,200 and
+  grants 6 loyalty; declining loses 5. Member decisions do not use daily orders.
+- Click **Next day** (or Space when no button has focus) to settle accounts and let
+  rivals act. **Run time** advances a day every 2.5 seconds; click again to pause.
+- **Save** and **Load** keep one local save under Godot's `user://` directory,
+  including the random state. Loading pauses time. **New city** asks before
+  discarding unsaved progress and preserves your saved game.
+
+This is an open-ended sandbox, with no victory condition yet. The simulation is
+turn based; automatic time is a convenience for advancing the same daily steps.
+Members are currently an organization count with shared loyalty and named
+promotion events, rather than individual simulated NPCs. Rival AI uses the same
+action costs, ownership, adjacency, and heat rules as the player, with one order
+per rival each day. Rivals that lose all territory cannot currently return.
+
+### Validate the prototype
+
+```bash
+godot --headless --path . --editor --import
+godot --headless --path . --script tests/run_tests.gd
+godot --headless --path . --script tests/ui_smoke.gd
+```
+
+The simulation tests exercise autonomous world progression, orders and costs,
+income and payroll, police responses, promotions, deterministic replay, local
+save/load, and rejection of malformed saves. The UI smoke test exercises district
+selection, actions, HUD updates, time controls, promotion decisions, and layout.
+
+The implementation lives in `game/simulation/world_state.gd` (world rules),
+`game/ui/city_map.gd` (map drawing and selection), and `game/ui/main.gd` (interface).
+
 - Underworld
 
   **Underworld** is a systems-driven crime organization strategy/RPG currently in early prototype development.
@@ -140,7 +213,7 @@ Current planned technology:
 
 AI development tools may assist with implementation, testing, debugging, documentation, and architecture, but gameplay simulation is intended to remain locally controlled and reproducible.
 
-## Repository Structure
+## Planned Repository Structure
 
 ```text
 underworld/
@@ -175,16 +248,15 @@ The directory structure will evolve as development progresses.
 
 ## Current Status
 
-**Stage:** Pre-alpha / simulation prototype
+**Stage:** Playable pre-alpha management simulation prototype
 
 Current priorities:
 
-- Establish the core project architecture
-- Implement the simulation clock and game state
-- Build the character system
-- Build the organization system
-- Establish automated testing
-- Develop the first playable simulation loop
+- Expand members into individual simulated characters
+- Add deeper organization relationships and competing goals
+- Improve economic balance through playtesting
+- Expand activities, investigations, and emergent events
+- Keep the world simulation deterministic and covered by automated tests
 
 ## Long-Term Vision
 
