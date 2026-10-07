@@ -39,7 +39,8 @@ headlessly.
   rival challenges depend on relative members and influence. The $6,000 cost is
   spent even if a challenge fails. Existing businesses transfer with a district.
 - **Lay low** reduces heat. At 65 heat or above, police may investigate, seize cash,
-  and reduce loyalty. Red dots on the map mark high local surveillance; that
+  reduce loyalty, and detain a member (leaving a minimum crew of 3).
+  Red dots on the map mark high local surveillance; that
   district statistic is currently informational, while organization heat drives
   investigations.
 - Review promotion requests to manage loyalty. Each promotion costs $1,200 and
@@ -56,6 +57,45 @@ Members are currently an organization count with shared loyalty and named
 promotion events, rather than individual simulated NPCs. Rival AI uses the same
 action costs, ownership, adjacency, and heat rules as the player, with one order
 per rival each day. Rivals that lose all territory cannot currently return.
+Rivals seek larger crews as they gain territory, provided recruitment preserves
+three days of payroll and daily revenue supports another member. Below six
+members, rebuilding takes priority when cash reserves allow it. Normal growth
+has a 40% daily recruitment opportunity, with urgent heat management taking
+precedence. Members can leave because of unpaid payroll or low loyalty, and
+police investigations can detain them. Events show the actual before/after count.
+
+### Debug mode
+
+Click **Debug [F3]** or press **F3** to open the simulation editor. It pauses time;
+closing with F3, Escape, or Close leaves time paused.
+
+- Choose Navarro, Romano, or Moretti and edit **cash, members, heat, influence,
+  and loyalty**, then click **Apply faction stats**.
+- Inspect daily income, payroll, crew targets, recruitment funding requirements,
+  and the rival's **last AI decision and reason**.
+- Change any district's **owner, business count, and police attention**, then
+  click its Apply button. Debug ownership bypasses normal claim rules.
+- Change **market demand and available player orders**, then Apply world values.
+- Fast-forward **1, 7, or 30 days** using the normal simulation rules.
+- Inspect the selected faction's membership history, including recruitment,
+  unpaid payroll, low loyalty, police detention, and explicitly labeled overrides.
+
+To see rivals hire and lose members immediately:
+
+1. Select **Romano Crew** and click **Recruitment**, then **+1 day**. The setup gives
+   it $50,000 and three members; its next AI turn recruits a fourth.
+2. Click **Missed payroll**, then **+1 day**. This sets cash to zero, gives it 40
+   members, and removes its businesses; the next day causes a departure.
+3. **Police pressure** sets heat to 100 and gives ten members. Advance days to
+   observe investigations; police decisions remain probabilistic.
+
+Scenario buttons prepare the selected faction without advancing time. Use a
+rival to test autonomous recruitment; Navarro remains player controlled.
+Debug edits modify the current city and are included in ordinary saves.
+Opening the panel only inspects the city. Values are bounded to valid save ranges,
+and existing saves remain loadable. Membership history retains the latest 100
+changes for the current session; it and the last-decision diagnostics reset on
+load, while normal saved events remain available.
 
 ### Validate the prototype
 
@@ -67,8 +107,10 @@ godot --headless --path . --script tests/ui_smoke.gd
 
 The simulation tests exercise autonomous world progression, orders and costs,
 income and payroll, police responses, promotions, deterministic replay, local
-save/load, and rejection of malformed saves. The UI smoke test exercises district
-selection, actions, HUD updates, time controls, promotion decisions, and layout.
+save/load, rejection of malformed saves, autonomous rival recruitment and losses,
+and validated debug edits/scenarios. The UI smoke test exercises district
+selection, actions, HUD updates, time controls, promotion decisions, debug stat
+editing, scenarios, fast-forward, keyboard closing, and layout.
 
 The implementation lives in `game/simulation/world_state.gd` (world rules),
 `game/ui/city_map.gd` (map drawing and selection), and `game/ui/main.gd` (interface).

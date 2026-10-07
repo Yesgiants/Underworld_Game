@@ -2,6 +2,7 @@ extends Control
 
 const World = preload("res://game/simulation/world_state.gd")
 const CityMap = preload("res://game/ui/city_map.gd")
+const DebugPanel = preload("res://game/ui/debug_panel.gd")
 const TEXT := Color("#e3e8ee")
 const MUTED := Color("#8996a7")
 const GOLD := Color("#dfa65b")
@@ -31,6 +32,8 @@ var auto_button: Button
 var next_button: Button
 var action_buttons: Dictionary = {}
 var reset_dialog: ConfirmationDialog
+var debug_panel: Control
+var debug_button: Button
 
 func _ready() -> void:
 	_build_theme()
@@ -137,6 +140,8 @@ func _build_ui() -> void:
 	header.add_child(tag)
 	header.add_child(_button("Save", _save, "Save the city, orders, and random state locally."))
 	header.add_child(_button("Load", _load, "Load your last local save. Time pauses on load."))
+	debug_button = _button("Debug [F3]", func() -> void: debug_panel.toggle(), "Pause time and edit factions, districts, and world values.")
+	header.add_child(debug_button)
 	header.add_child(_button("New city", _confirm_reset, "Start again. Your last saved game is preserved."))
 
 	var stats := _card(root, 14)
@@ -257,6 +262,9 @@ func _build_ui() -> void:
 	reset_dialog.ok_button_text = "Start new city"
 	reset_dialog.confirmed.connect(_reset)
 	add_child(reset_dialog)
+	debug_panel = DebugPanel.new()
+	debug_panel.host = self
+	add_child(debug_panel)
 
 func _metric(parent: Node, heading: String, color: Color) -> Label:
 	var column := VBoxContainer.new()
@@ -295,10 +303,12 @@ func _refresh() -> void:
 	map.selected = selected
 	map.queue_redraw()
 	var log_text := ""
-	var colors := {"player": "#dfa65b", "rival": "#aa8ccb", "police": "#e07973", "member": "#a9b9d4", "economy": "#69b4b0"}
+	var colors := {"player": "#dfa65b", "rival": "#aa8ccb", "police": "#e07973", "member": "#a9b9d4", "economy": "#69b4b0", "debug": "#e9c488"}
 	for entry in world.events:
 		log_text += "[color=#66768c]DAY %02d[/color]  [color=%s]●[/color]  %s\n" % [entry.day, colors[entry.kind], entry.text.replace("[", "[lb]")]
 	events_label.text = log_text
+	if debug_panel != null and debug_panel.visible:
+		debug_panel.refresh()
 
 func _action_tooltip(action: String) -> String:
 	match action:
@@ -365,7 +375,22 @@ func _status(message: String, error: bool = false) -> void:
 	status_label.text = message
 	status_label.add_theme_color_override("font_color", Color("#e07973") if error else MUTED)
 
+func _input(event: InputEvent) -> void:
+	# Keep keyboard navigation on the editor while its overlay is open.
+	# A previously focused gameplay button must not accept Enter/Space.
+	if debug_panel.visible and event is InputEventKey:
+		var focused := get_viewport().gui_get_focus_owner()
+		if focused != null and not debug_panel.is_ancestor_of(focused):
+			debug_panel.faction_picker.grab_focus()
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F3 and not reset_dialog.visible:
+			debug_panel.toggle()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_ESCAPE and debug_panel.visible:
+			debug_panel.close()
+			get_viewport().set_input_as_handled()
+
 func _unhandled_key_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE and not reset_dialog.visible:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE and not reset_dialog.visible and not debug_panel.visible:
 		_advance()
 		get_viewport().set_input_as_handled()

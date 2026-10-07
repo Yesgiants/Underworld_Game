@@ -15,6 +15,7 @@ const ACTIONS := ["operation", "claim", "recruit", "business", "lay_low"]
 const COSTS := {"operation": 0, "claim": 6000, "recruit": 2500, "business": 6500, "lay_low": 1800}
 const SAVE_VERSION := 1
 const SAVE_PATH := "user://underworld_save.json"
+const STAT_LIMITS := {"cash": [0, 10000000], "heat": [0, 100], "influence": [0, 999], "members": [1, 60], "loyalty": [0, 100]}
 
 var day: int = 1
 var market: int = 100
@@ -25,6 +26,9 @@ var events: Array = []
 var request_pending: bool = true
 var request_name: String = "Tony Vega"
 var rng := RandomNumberGenerator.new()
+# Diagnostics are observations, not simulation inputs. They reset on load.
+var ai_decisions: Dictionary = {}
+var member_changes: Array = []
 
 func _init(world_seed: int = 2026) -> void:
 	rng.seed = world_seed
@@ -161,9 +165,11 @@ func perform_action(action: String, org_id: String = PLAYER, index: int = 7) -> 
 				org.influence = maxi(0, int(org.influence) - 2)
 				message = "%s held %s against %s. The challenge cost $6,000." % [organizations[previous].name, district.name, org.name]
 		"recruit":
+			var previous_members: int = org.members
 			org.members += 1
+			_record_membership(org_id, previous_members, int(org.members), "recruitment")
 			org.loyalty = mini(100, int(org.loyalty) + 1)
-			message = "%s recruited a member. Daily payroll +$140." % org.name
+			message = "%s recruited a member (%d → %d). Daily payroll +$140." % [org.name, previous_members, org.members]
 		"business":
 			district.businesses += 1
 			org.influence += 2
@@ -205,14 +211,12 @@ func advance_day() -> void:
 		org.cash += income
 		if int(org.cash) < payroll:
 			org.loyalty -= 8
-			if int(org.members) > 3:
-				org.members -= 1
-			_event("%s missed payroll. Loyalty fell and a member may have left." % org.name, "economy")
+			_lose_member(org_id, "unpaid payroll", "economy")
+			_event("%s missed payroll. Loyalty −8." % org.name, "economy")
 		org.cash = maxi(0, int(org.cash) - payroll)
 		org.heat = maxi(0, int(org.heat) - 2)
 		if int(org.loyalty) < 35 and int(org.members) > 3 and rng.randf() < 0.2:
-			org.members -= 1
-			_event("A disloyal member left %s." % org.name, "member")
+			_lose_member(org_id, "low loyalty", "member")
 		_normalize(org)
 		if org_id == PLAYER:
 			_event("Daily accounts: $%s income, $%s payroll. Market demand %d%%." % [money(income), money(payroll), market], "economy")
@@ -233,26 +237,64 @@ func _ai_turn(org_id: String) -> void:
 			owned.append(i)
 		elif borders(i, org_id):
 			expansion.append(i)
-	if int(org.heat) >= 55 and int(org.cash) >= 1800:
-		perform_action("lay_low", org_id, 0)
+	# React at the investigation threshold, allowing risky actions to carry
+	# police consequences instead of keeping rivals permanently below it.
+	if int(org.heat) >= 65 and int(org.cash) >= 1800:
+		_ai_action("lay_low", org_id, 0, "Heat reached the police investigation threshold.")
 		return
-	if int(org.members) < 6 and int(org.cash) >= 2500:
-		perform_action("recruit", org_id, 0)
+	var crew_target := recruitment_target(org_id)
+	var reserve := recruitment_reserve(org_id)
+	var affordable := int(org.cash) >= 2500 + reserve
+	var sustainable := daily_income(org_id) >= daily_payroll(org_id) + 140
+	var understaffed := int(org.members) < crew_target
+	if understaffed and affordable and (int(org.members) < 6 or sustainable) and (int(org.members) < 6 or rng.randf() < 0.4):
+		_ai_action("recruit", org_id, 0, "Crew %d/%d; recruitment preserves three days of payroll ($%s)." % [org.members, crew_target, money(reserve)])
 		return
+	var staffing := "Crew %d/%d. " % [org.members, crew_target]
+	if understaffed and not affordable:
+		staffing += "Recruitment needs $%s including payroll reserve. " % money(2500 + reserve)
+	elif understaffed and not sustainable:
+		staffing += "Daily revenue cannot support another member. "
 	if not expansion.is_empty() and rng.randf() < 0.5 and int(org.cash) >= 6000:
 		var target: int = expansion[rng.randi_range(0, expansion.size() - 1)]
-		if perform_action("claim", org_id, target).ok:
+		if _ai_action("claim", org_id, target, staffing + "Pursuing adjacent territory.").ok:
 			return
 	if not owned.is_empty():
 		var target: int = owned[rng.randi_range(0, owned.size() - 1)]
 		if int(org.cash) >= 6500 and int(districts[target].businesses) < 3 and rng.randf() < 0.45:
-			perform_action("business", org_id, target)
+			_ai_action("business", org_id, target, staffing + "Investing in daily revenue.")
 		else:
-			perform_action("operation", org_id, target)
-	elif int(org.cash) >= 2500 and int(org.members) < 60:
-		perform_action("recruit", org_id, 0)
+			_ai_action("operation", org_id, target, staffing + "Raising operating cash.")
 	else:
+		ai_decisions[org_id] = {"day": day, "action": "wait", "reason": staffing + "No territory for an operation or business."}
 		_event("%s has no territory and is waiting for an opportunity." % org.name, "rival")
+
+func recruitment_target(org_id: String) -> int:
+	return clampi(4 + territory(org_id) * 2, 6, 30)
+
+func recruitment_reserve(org_id: String) -> int:
+	return (int(organizations[org_id].members) + 1) * 140 * 3
+
+func _ai_action(action: String, org_id: String, index: int, reason: String) -> Dictionary:
+	var result := perform_action(action, org_id, index)
+	ai_decisions[org_id] = {"day": day, "action": action, "reason": reason if result.ok else result.message}
+	return result
+
+func _record_membership(org_id: String, before: int, after: int, reason: String) -> void:
+	if before == after:
+		return
+	member_changes.push_front({"day": day, "organization": org_id, "before": before, "after": after, "reason": reason})
+	if member_changes.size() > 100:
+		member_changes.resize(100)
+
+func _lose_member(org_id: String, reason: String, kind: String) -> void:
+	var org: Dictionary = organizations[org_id]
+	if int(org.members) <= 3:
+		return
+	var before: int = org.members
+	org.members -= 1
+	_record_membership(org_id, before, int(org.members), reason)
+	_event("%s lost a member to %s (%d → %d)." % [org.name, reason, before, org.members], kind)
 
 func _police_turn() -> void:
 	for org_id in ORG_IDS:
@@ -262,6 +304,7 @@ func _police_turn() -> void:
 			org.cash -= fine
 			org.heat = maxi(0, int(org.heat) - 12)
 			org.loyalty = maxi(0, int(org.loyalty) - 4)
+			_lose_member(org_id, "police detention", "police")
 			_event("Police investigated %s. $%s seized; loyalty −4." % [org.name, money(fine)], "police")
 	if day % 4 == 0:
 		var watched := rng.randi_range(0, districts.size() - 1)
@@ -288,6 +331,69 @@ static func money(amount: int) -> String:
 			result += ","
 		result += digits[i]
 	return ("−" if amount < 0 else "") + result
+
+func debug_set_organization(org_id: String, values: Dictionary) -> Dictionary:
+	if org_id not in ORG_IDS or values.is_empty():
+		return {"ok": false, "message": "Select a faction and at least one stat."}
+	for field in values:
+		if field not in STAT_LIMITS or not _integer(values[field], STAT_LIMITS[field][0], STAT_LIMITS[field][1]):
+			return {"ok": false, "message": "Invalid faction stat: %s." % field}
+	var before: int = organizations[org_id].members
+	for field in values:
+		organizations[org_id][field] = int(values[field])
+	_record_membership(org_id, before, int(organizations[org_id].members), "debug override")
+	var message := "[DEBUG] %s stats overridden." % organizations[org_id].name
+	_event(message, "debug")
+	return {"ok": true, "message": message}
+
+func debug_set_district(index: int, owner: String, count: int, attention: int) -> Dictionary:
+	if index < 0 or index >= districts.size() or owner not in ORG_IDS + ["neutral"] or count < 0 or count > 3 or attention < 0 or attention > 100:
+		return {"ok": false, "message": "Invalid district values."}
+	districts[index].owner = owner
+	districts[index].businesses = count
+	districts[index].attention = attention
+	var message := "[DEBUG] %s ownership, businesses, and attention overridden." % districts[index].name
+	_event(message, "debug")
+	return {"ok": true, "message": message}
+
+func debug_set_world(demand: int, available_orders: int) -> Dictionary:
+	if demand < 65 or demand > 135 or available_orders < 0 or available_orders > 2:
+		return {"ok": false, "message": "Market must be 65–135; orders must be 0–2."}
+	market = demand
+	orders = available_orders
+	var message := "[DEBUG] Market set to %d%%; available orders %d." % [market, orders]
+	_event(message, "debug")
+	return {"ok": true, "message": message}
+
+func debug_scenario(org_id: String, scenario: String) -> Dictionary:
+	if org_id not in ORG_IDS or scenario not in ["recruitment", "unpaid_payroll", "police"]:
+		return {"ok": false, "message": "Unknown debug scenario."}
+	var values: Dictionary
+	match scenario:
+		"recruitment":
+			values = {"cash": 50000, "members": 3, "loyalty": 80, "heat": 0}
+		"unpaid_payroll":
+			# 40 members cost more than even 24 empty districts can earn.
+			values = {"cash": 0, "members": 40, "loyalty": 70, "heat": 0}
+		"police":
+			values = {"cash": 50000, "members": 10, "loyalty": 70, "heat": 100}
+	var result := debug_set_organization(org_id, values)
+	if scenario == "unpaid_payroll":
+		for district in districts:
+			if district.owner == org_id:
+				district.businesses = 0
+	result.message = "[DEBUG] %s scenario prepared for %s. Advance time to observe the outcome." % [scenario.replace("_", " "), organizations[org_id].name]
+	_event(result.message, "debug")
+	return result
+
+func debug_advance(days: int) -> Dictionary:
+	if days < 1 or days > 365 or day + days > 100000:
+		return {"ok": false, "message": "Advance 1–365 days within the save's day limit."}
+	for i in range(days):
+		advance_day()
+	var message := "[DEBUG] Advanced %d days. Now day %d." % [days, day]
+	_event(message, "debug")
+	return {"ok": true, "message": message}
 
 func save_data() -> Dictionary:
 	return {"version": SAVE_VERSION, "day": day, "market": market, "orders": orders,
@@ -332,7 +438,7 @@ func restore_data(data: Variant) -> bool:
 		if not org is Dictionary or not org.get("name") is String or org.name != organizations[org_id].name:
 			return false
 		for field in ["cash", "heat", "influence", "members", "loyalty"]:
-			var limits: Array = {"cash": [0, 10000000], "heat": [0, 100], "influence": [0, 999], "members": [1, 60], "loyalty": [0, 100]}[field]
+			var limits: Array = STAT_LIMITS[field]
 			if not _integer(org.get(field), limits[0], limits[1]):
 				return false
 	if not data.get("districts") is Array or data.districts.size() != WIDTH * HEIGHT:
@@ -348,7 +454,7 @@ func restore_data(data: Variant) -> bool:
 	for entry in data.events:
 		if not entry is Dictionary or not _integer(entry.get("day"), 1, int(data.day)):
 			return false
-		if not entry.get("text") is String or entry.text.length() > 300 or entry.get("kind") not in ["player", "rival", "police", "member", "economy"]:
+		if not entry.get("text") is String or entry.text.length() > 300 or entry.get("kind") not in ["player", "rival", "police", "member", "economy", "debug"]:
 			return false
 	day = int(data.day)
 	market = int(data.market)
@@ -368,6 +474,8 @@ func restore_data(data: Variant) -> bool:
 	request_pending = data.request_pending
 	request_name = data.request_name
 	rng.state = int(data.rng_state)
+	ai_decisions.clear()
+	member_changes.clear()
 	return true
 
 static func _integer(value: Variant, minimum: int, maximum: int) -> bool:

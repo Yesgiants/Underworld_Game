@@ -12,6 +12,8 @@ func _initialize() -> void:
 	_ai_and_police()
 	_save_and_replay()
 	_bad_saves()
+	_rival_staffing()
+	_debug_tools()
 	print("SIMULATION TESTS: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -150,3 +152,83 @@ func _bad_saves() -> void:
 	invalid.append(bad_event)
 	for i in range(invalid.size()):
 		expect(not world.restore_data(invalid[i]) and snapshot(world) == before, "Invalid save %d rejected without modifying the world" % i)
+
+func _rival_staffing() -> void:
+	var world = World.new()
+	expect(world.recruitment_target("romano") == 14 and world.recruitment_target("moretti") == 12, "Rival crew targets grow with controlled districts")
+	var changes := {"romano": {"recruitment": 0, "loss": 0}, "moretti": {"recruitment": 0, "loss": 0}}
+	for i in range(90):
+		world.advance_day()
+		for entry in world.member_changes:
+			if entry.day == world.day and entry.organization in changes:
+				var category := "recruitment" if entry.after > entry.before else "loss"
+				changes[entry.organization][category] += 1
+	for org_id in ["romano", "moretti"]:
+		expect(changes[org_id].recruitment > 0, "%s naturally recruits from its starting crew size" % org_id)
+		expect(changes[org_id].loss > 0, "%s naturally loses members during autonomous play" % org_id)
+	var shortage = World.new()
+	shortage.debug_scenario("romano", "recruitment")
+	shortage.advance_day()
+	expect(shortage.organizations.romano.members == 4 and shortage.ai_decisions.romano.action == "recruit", "Understaffed rival prioritizes affordable recruitment")
+	expect(shortage.ai_decisions.romano.reason.contains("payroll"), "AI records recruitment reasoning")
+	var poor = World.new()
+	poor.debug_set_organization("romano", {"members": 5, "cash": 0, "heat": 0})
+	for district in poor.districts:
+		if district.owner == "romano":
+			district.businesses = 0
+	poor.advance_day()
+	expect(poor.organizations.romano.members == 5 and poor.ai_decisions.romano.action != "recruit", "Rival preserves payroll reserve instead of spending its last cash on recruitment")
+	var unprofitable = World.new()
+	unprofitable.debug_set_organization("romano", {"members": 10, "cash": 50000, "heat": 0})
+	for district in unprofitable.districts:
+		if district.owner == "romano":
+			district.businesses = 0
+	unprofitable.advance_day()
+	expect(unprofitable.ai_decisions.romano.action != "recruit" and unprofitable.ai_decisions.romano.reason.contains("revenue"), "Nonurgent growth needs sustainable daily income")
+
+func _debug_tools() -> void:
+	var world = World.new()
+	expect(world.debug_set_organization("moretti", {"cash": 100, "members": 12, "heat": 80, "loyalty": 20, "influence": 50}).ok, "Debug can edit every faction stat")
+	expect(world.organizations.moretti.members == 12 and world.member_changes[0].reason == "debug override", "Debug membership changes are labeled")
+	var before := snapshot(world)
+	expect(not world.debug_set_organization("moretti", {"cash": 1000, "heat": 101}).ok and snapshot(world) == before, "Invalid debug stats are rejected atomically")
+	expect(not world.debug_set_organization("unknown", {"cash": 1000}).ok, "Debug rejects unknown factions")
+	expect(world.debug_set_district(23, "romano", 3, 100).ok and world.districts[23].owner == "romano", "Debug ownership overrides normal adjacency rules")
+	before = snapshot(world)
+	expect(not world.debug_set_district(23, "unknown", 3, 100).ok and snapshot(world) == before, "Invalid district override preserves world state")
+	expect(world.debug_set_world(135, 0).ok and world.market == 135 and world.orders == 0, "Debug can edit demand and player orders")
+	before = snapshot(world)
+	expect(not world.debug_set_world(136, 0).ok and snapshot(world) == before, "Debug rejects out-of-range global values")
+	var unpaid = World.new()
+	for district in unpaid.districts:
+		district.owner = "romano"
+		district.businesses = 3
+	unpaid.market = 135
+	expect(unpaid.debug_scenario("romano", "unpaid_payroll").ok, "Missed-payroll scenario can be prepared")
+	unpaid.advance_day()
+	expect(unpaid.organizations.romano.members == 39 and unpaid.organizations.romano.cash < 6000, "Missed-payroll scenario loses a member even with maximum empty territory income")
+	var recorded := false
+	for entry in unpaid.member_changes:
+		if entry.organization == "romano" and entry.reason == "unpaid payroll":
+			recorded = true
+	expect(recorded, "Membership ledger identifies the cause of departure")
+	var detained = World.new(99)
+	var arrests := 0
+	for i in range(10):
+		detained.debug_scenario("moretti", "police")
+		detained.advance_day()
+		for entry in detained.member_changes:
+			if entry.day == detained.day and entry.organization == "moretti" and entry.reason == "police detention":
+				arrests += 1
+	expect(arrests > 0, "Police investigations can remove a rival member")
+	var quick = World.new(55)
+	var slow = World.new(55)
+	expect(quick.debug_advance(30).ok, "Debug fast-forward runs normal simulation")
+	for i in range(30):
+		slow.advance_day()
+	expect(quick.day == slow.day and quick.organizations == slow.organizations and quick.districts == slow.districts and quick.rng.state == slow.rng.state, "Fast-forward has identical world and RNG outcomes to ordinary daily turns")
+	before = snapshot(quick)
+	expect(not quick.debug_advance(0).ok and not quick.debug_advance(366).ok and snapshot(quick) == before, "Invalid fast-forward does not mutate state")
+	var restored = World.new()
+	expect(restored.restore_data(world.save_data()) and snapshot(restored) == snapshot(world), "Debug edits and labeled events remain compatible with save/load")
+	expect(restored.ai_decisions.is_empty() and restored.member_changes.is_empty(), "Transient diagnostics restart cleanly after loading")

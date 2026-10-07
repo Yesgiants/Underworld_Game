@@ -46,6 +46,72 @@ func _run() -> void:
 	print("UI bounds: viewport %s, footer %s" % [root.size, bottom])
 	expect(bottom.end.y <= root.size.y, "Interface fits inside the viewport vertically")
 	expect(ui.map.get_global_rect().end.x <= ui.org_stats.get_global_rect().position.x, "Map and organization panel do not overlap")
+	ui.auto_button.pressed.emit()
+	var before: Dictionary = ui.world.save_data()
+	ui.debug_button.pressed.emit()
+	var debug = ui.debug_panel
+	expect(debug.visible and ui.timer.is_stopped(), "Opening debug pauses time")
+	expect(ui.world.save_data() == before, "Opening debug does not tamper with the world")
+	ui.next_button.grab_focus()
+	var enter := InputEventKey.new()
+	enter.pressed = true
+	enter.keycode = KEY_ENTER
+	root.push_input(enter)
+	await process_frame
+	expect(ui.world.day == before.day and debug.is_ancestor_of(root.gui_get_focus_owner()), "Debug prevents an underlying gameplay button from receiving keyboard activation")
+	debug.faction_picker.get_popup().hide()
+	debug.stat_fields.cash.get_line_edit().text = "53000"
+	debug.stat_fields.members.get_line_edit().text = "12"
+	debug.apply_stats_button.pressed.emit()
+	expect(ui.world.organizations.romano.cash == 53000 and ui.world.organizations.romano.members == 12, "Debug stat fields apply to selected rival")
+	expect(ui.rivals_label.text.contains("12 members"), "Main HUD updates after debug edits")
+	debug.scenario_buttons.recruitment.pressed.emit()
+	debug.advance_buttons[1].pressed.emit()
+	expect(ui.world.organizations.romano.members == 4, "Debug recruitment scenario demonstrates rival hiring")
+	expect(debug.history.text.contains("recruitment") and debug.inspector.text.contains("recruit"), "Debug shows membership cause and last AI decision")
+	debug.scenario_buttons.unpaid_payroll.pressed.emit()
+	debug.advance_buttons[1].pressed.emit()
+	expect(ui.world.organizations.romano.members == 39 and debug.history.text.contains("unpaid payroll"), "Debug payroll scenario demonstrates rival losing a member")
+	debug.market_field.get_line_edit().text = "120"
+	debug.orders_field.get_line_edit().text = "0"
+	debug.apply_world_button.pressed.emit()
+	expect(ui.world.market == 120 and ui.world.orders == 0 and ui.action_buttons.recruit.disabled, "Debug global values refresh normal action availability")
+	debug.district_picker.select(23)
+	debug._read_district()
+	debug.owner_picker.select(0)
+	debug.business_field.get_line_edit().text = "3"
+	debug.attention_field.get_line_edit().text = "90"
+	debug.apply_district_button.pressed.emit()
+	expect(ui.world.districts[23].owner == "navarro" and ui.world.districts[23].businesses == 3 and ui.world.districts[23].attention == 90 and ui.selected == 23, "Debug district overrides update the city map")
+	var day: int = ui.world.day
+	debug.advance_buttons[7].pressed.emit()
+	expect(ui.world.day == day + 7, "Debug seven-day fast-forward button works")
+	for i in range(3):
+		await process_frame
+	var fields_match := true
+	for field in debug.stat_fields:
+		var spin: SpinBox = debug.stat_fields[field]
+		var expected: int = ui.world.organizations.romano[field]
+		if int(spin.value) != expected or int(spin.get_line_edit().text.to_float()) != expected:
+			printerr("Debug field mismatch: %s, value=%s, displayed=%s, expected=%s" % [field, spin.value, spin.get_line_edit().text, expected])
+			fields_match = false
+	expect(fields_match, "Debug numeric fields display the updated faction after fast-forward")
+	var panel: Control = debug.get_child(1)
+	expect(panel.get_global_rect().position.y >= 0 and panel.get_global_rect().end.y <= root.size.y, "Debug panel fits the viewport")
+	expect(debug.message_label.get_global_rect().end.y <= panel.get_global_rect().end.y, "Debug controls fit inside their panel")
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--capture-debug="):
+			await RenderingServer.frame_post_draw
+			var image := root.get_texture().get_image()
+			expect(image.save_png(arg.trim_prefix("--capture-debug=")) == OK, "Debug screenshot saved")
+	var close_key := InputEventKey.new()
+	close_key.pressed = true
+	close_key.keycode = KEY_F3
+	ui._input(close_key)
+	expect(not debug.visible and ui.timer.is_stopped(), "F3 closes debug while preserving paused time")
+	ui._reset()
+	for i in range(3):
+		await process_frame
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--capture="):
 			await RenderingServer.frame_post_draw
