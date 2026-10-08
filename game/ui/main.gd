@@ -4,6 +4,7 @@ const World = preload("res://game/simulation/world_state.gd")
 const CityMap = preload("res://game/ui/city_map.gd")
 const DebugPanel = preload("res://game/ui/debug_panel.gd")
 const MembersPage = preload("res://game/ui/members_page.gd")
+const Layout = preload("res://game/simulation/city_layout.gd")
 const TEXT := Color("#e3e8ee")
 const MUTED := Color("#8996a7")
 const GOLD := Color("#dfa65b")
@@ -37,6 +38,8 @@ var debug_panel: Control
 var debug_button: Button
 var members_page: Control
 var members_button: LinkButton
+var map_title: Label
+var map_hint: Label
 
 func _ready() -> void:
 	_build_theme()
@@ -172,9 +175,11 @@ func _build_ui() -> void:
 	var map_card := _card(middle)
 	map_card.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var map_heading := _row(map_card)
-	map_heading.add_child(_label("CITY MAP", 15))
+	map_title = _label("", 15)
+	map_heading.add_child(map_title)
 	_spacer(map_heading)
-	map_heading.add_child(_label("24 DISTRICTS  /  CLICK TO INSPECT", 11, MUTED))
+	map_hint = _label("", 10, MUTED)
+	map_heading.add_child(map_hint)
 	map = CityMap.new()
 	map.world = world
 	map.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -185,7 +190,7 @@ func _build_ui() -> void:
 		legend.add_child(_label(item[0], 12, item[1]))
 	district_label = _label("", 13)
 	district_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	district_label.custom_minimum_size.y = 48
+	district_label.custom_minimum_size.y = 68
 	map_card.add_child(district_label)
 
 	var org_card := _card(middle)
@@ -290,6 +295,8 @@ func _metric(parent: Node, heading: String, color: Color) -> Label:
 	return value
 
 func _refresh() -> void:
+	map_title.text = Layout.city_name(world.city_layout).to_upper()
+	map_hint.text = "24 DISTRICTS / 2 BRIDGES / CLICK TO INSPECT" if world.city_layout == Layout.IRON_HAVEN else "24 DISTRICTS / ORIGINAL MAP"
 	var org: Dictionary = world.organizations[World.PLAYER]
 	cash_label.text = "$" + World.money(int(org.cash))
 	heat_label.text = "%d / 100" % org.heat
@@ -306,6 +313,7 @@ func _refresh() -> void:
 	var district: Dictionary = world.districts[selected]
 	var owner: String = "Independent" if district.owner == "neutral" else world.organizations[district.owner].name
 	district_label.text = "%s  /  %s\n%d businesses  ·  Police attention %d/100%s" % [district.name.to_upper(), owner, district.businesses, district.attention, "  ·  Borders your territory" if district.owner != World.PLAYER and world.borders(selected, World.PLAYER) else ""]
+	district_label.text += "\n" + Layout.district_detail(selected, world.city_layout)
 	request_label.text = "MEMBER REQUEST\n%s seeks a promotion." % world.request_name if world.request_pending else "MEMBER REQUEST\nNo pending requests. Next review every 7 days."
 	request_buttons.visible = world.request_pending
 	request_yes.disabled = int(org.cash) < 1200

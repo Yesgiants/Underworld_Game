@@ -1,0 +1,591 @@
+{
+	"day": 9,
+	"districts": [
+		{
+			"attention": 0,
+			"businesses": 1,
+			"name": "North End",
+			"owner": "romano"
+		},
+		{
+			"attention": 18,
+			"businesses": 1,
+			"name": "Little Italy",
+			"owner": "romano"
+		},
+		{
+			"attention": 13,
+			"businesses": 1,
+			"name": "Old Quarter",
+			"owner": "romano"
+		},
+		{
+			"attention": 20,
+			"businesses": 0,
+			"name": "Uptown",
+			"owner": "neutral"
+		},
+		{
+			"attention": 45,
+			"businesses": 0,
+			"name": "East Village",
+			"owner": "neutral"
+		},
+		{
+			"attention": 0,
+			"businesses": 0,
+			"name": "The Heights",
+			"owner": "neutral"
+		},
+		{
+			"attention": 6,
+			"businesses": 1,
+			"name": "West Market",
+			"owner": "player"
+		},
+		{
+			"attention": 58,
+			"businesses": 2,
+			"name": "Downtown",
+			"owner": "player"
+		},
+		{
+			"attention": 20,
+			"businesses": 2,
+			"name": "Civic Center",
+			"owner": "romano"
+		},
+		{
+			"attention": 27,
+			"businesses": 2,
+			"name": "Midtown",
+			"owner": "romano"
+		},
+		{
+			"attention": 0,
+			"businesses": 0,
+			"name": "East Market",
+			"owner": "neutral"
+		},
+		{
+			"attention": 6,
+			"businesses": 0,
+			"name": "Parkside",
+			"owner": "neutral"
+		},
+		{
+			"attention": 13,
+			"businesses": 1,
+			"name": "West Docks",
+			"owner": "player"
+		},
+		{
+			"attention": 20,
+			"businesses": 0,
+			"name": "Warehouse Row",
+			"owner": "neutral"
+		},
+		{
+			"attention": 49,
+			"businesses": 0,
+			"name": "Rail Yards",
+			"owner": "romano"
+		},
+		{
+			"attention": 11,
+			"businesses": 1,
+			"name": "Southbank",
+			"owner": "moretti"
+		},
+		{
+			"attention": 6,
+			"businesses": 1,
+			"name": "Foundry",
+			"owner": "moretti"
+		},
+		{
+			"attention": 53,
+			"businesses": 0,
+			"name": "Riverside",
+			"owner": "moretti"
+		},
+		{
+			"attention": 20,
+			"businesses": 0,
+			"name": "Harbor Point",
+			"owner": "neutral"
+		},
+		{
+			"attention": 27,
+			"businesses": 0,
+			"name": "Fish Market",
+			"owner": "neutral"
+		},
+		{
+			"attention": 0,
+			"businesses": 0,
+			"name": "Shipyards",
+			"owner": "neutral"
+		},
+		{
+			"attention": 6,
+			"businesses": 1,
+			"name": "The Narrows",
+			"owner": "moretti"
+		},
+		{
+			"attention": 25,
+			"businesses": 1,
+			"name": "South End",
+			"owner": "moretti"
+		},
+		{
+			"attention": 20,
+			"businesses": 0,
+			"name": "Bayview",
+			"owner": "neutral"
+		}
+	],
+	"events": [
+		{
+			"day": 9,
+			"kind": "rival",
+			"text": "Moretti Syndicate earned $3,503 from an operation in South End. Heat +9."
+		},
+		{
+			"day": 9,
+			"kind": "rival",
+			"text": "Romano Crew recruited Jade Brooks (8 → 9). Daily payroll +$140."
+		},
+		{
+			"day": 9,
+			"kind": "economy",
+			"text": "Daily accounts: $2,618 income, $1,120 payroll. Market demand 85%."
+		},
+		{
+			"day": 8,
+			"kind": "police",
+			"text": "Police surveillance increased in East Village."
+		},
+		{
+			"day": 8,
+			"kind": "rival",
+			"text": "Moretti Syndicate recruited Isaac Brooks (12 → 13). Daily payroll +$140."
+		},
+		{
+			"day": 8,
+			"kind": "rival",
+			"text": "Romano Crew earned $2,660 from an operation in Little Italy. Heat +9."
+		},
+		{
+			"day": 8,
+			"kind": "economy",
+			"text": "Daily accounts: $2,741 income, $1,120 payroll. Market demand 89%."
+		},
+		{
+			"day": 7,
+			"kind": "member",
+			"text": "Elena Cruz requests a promotion."
+		},
+		{
+			"day": 7,
+			"kind": "rival",
+			"text": "Moretti Syndicate earned $2,848 from an operation in Southbank. Heat +9."
+		},
+		{
+			"day": 7,
+			"kind": "rival",
+			"text": "Romano Crew opened a business in Civic Center. Base daily revenue +$650."
+		},
+		{
+			"day": 7,
+			"kind": "economy",
+			"text": "Daily accounts: $2,648 income, $1,120 payroll. Market demand 86%."
+		},
+		{
+			"day": 6,
+			"kind": "rival",
+			"text": "Moretti Syndicate earned $2,659 from an operation in Riverside. Heat +9."
+		},
+		{
+			"day": 6,
+			"kind": "rival",
+			"text": "Romano Crew earned $2,357 from an operation in Rail Yards. Heat +9."
+		},
+		{
+			"day": 6,
+			"kind": "economy",
+			"text": "Daily accounts: $2,772 income, $1,120 payroll. Market demand 90%."
+		},
+		{
+			"day": 5,
+			"kind": "rival",
+			"text": "Moretti Syndicate recruited Hana Brooks (11 → 12). Daily payroll +$140."
+		},
+		{
+			"day": 5,
+			"kind": "rival",
+			"text": "Romano Crew opened a business in Midtown. Base daily revenue +$650."
+		},
+		{
+			"day": 5,
+			"kind": "economy",
+			"text": "Daily accounts: $2,802 income, $1,120 payroll. Market demand 91%."
+		},
+		{
+			"day": 4,
+			"kind": "police",
+			"text": "Police surveillance increased in Riverside."
+		},
+		{
+			"day": 4,
+			"kind": "rival",
+			"text": "Moretti Syndicate took control of Riverside. Influence +8."
+		},
+		{
+			"day": 4,
+			"kind": "rival",
+			"text": "Romano Crew took control of Rail Yards. Influence +8."
+		},
+		{
+			"day": 4,
+			"kind": "economy",
+			"text": "Daily accounts: $2,864 income, $1,120 payroll. Market demand 93%."
+		},
+		{
+			"day": 3,
+			"kind": "rival",
+			"text": "Moretti Syndicate recruited Gabriel Brooks (10 → 11). Daily payroll +$140."
+		},
+		{
+			"day": 3,
+			"kind": "rival",
+			"text": "Romano Crew recruited Farah Brooks (7 → 8). Daily payroll +$140."
+		},
+		{
+			"day": 3,
+			"kind": "economy",
+			"text": "Daily accounts: $3,018 income, $1,120 payroll. Market demand 98%."
+		},
+		{
+			"day": 2,
+			"kind": "rival",
+			"text": "Moretti Syndicate recruited Elias Brooks (9 → 10). Daily payroll +$140."
+		},
+		{
+			"day": 2,
+			"kind": "rival",
+			"text": "Player held Downtown against Romano Crew. The challenge cost $6,000."
+		},
+		{
+			"day": 2,
+			"kind": "economy",
+			"text": "Daily accounts: $3,141 income, $1,120 payroll. Market demand 102%."
+		},
+		{
+			"day": 1,
+			"kind": "member",
+			"text": "Tony Vega's promotion was declined. Loyalty −5."
+		},
+		{
+			"day": 1,
+			"kind": "player",
+			"text": "Player earned $3,364 from an operation in Downtown. Heat +9."
+		},
+		{
+			"day": 1,
+			"kind": "member",
+			"text": "Tony Vega requests a promotion. Review the member request."
+		},
+		{
+			"day": 1,
+			"kind": "rival",
+			"text": "Romano Crew is expanding near your territory."
+		},
+		{
+			"day": 1,
+			"kind": "police",
+			"text": "Police surveillance increased in Downtown."
+		}
+	],
+	"market": 85,
+	"next_member_id": 31,
+	"orders": 2,
+	"organizations": {
+		"moretti": {
+			"cash": 46896,
+			"heat": 47,
+			"influence": 133,
+			"loyalty": 83,
+			"members": 13,
+			"name": "Moretti Syndicate",
+			"roster": [
+				{
+					"age": 35,
+					"first_name": "Priya",
+					"id": 16,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 92
+				},
+				{
+					"age": 44,
+					"first_name": "Rafael",
+					"id": 17,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 76
+				},
+				{
+					"age": 44,
+					"first_name": "Selena",
+					"id": 18,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 90
+				},
+				{
+					"age": 41,
+					"first_name": "Theo",
+					"id": 19,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 78
+				},
+				{
+					"age": 55,
+					"first_name": "Yasmin",
+					"id": 20,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 88
+				},
+				{
+					"age": 19,
+					"first_name": "Adrian",
+					"id": 21,
+					"joined_day": 1,
+					"last_name": "Brooks",
+					"loyalty": 80
+				},
+				{
+					"age": 51,
+					"first_name": "Bianca",
+					"id": 22,
+					"joined_day": 1,
+					"last_name": "Brooks",
+					"loyalty": 86
+				},
+				{
+					"age": 55,
+					"first_name": "Caleb",
+					"id": 23,
+					"joined_day": 1,
+					"last_name": "Brooks",
+					"loyalty": 82
+				},
+				{
+					"age": 60,
+					"first_name": "Daria",
+					"id": 24,
+					"joined_day": 1,
+					"last_name": "Brooks",
+					"loyalty": 84
+				},
+				{
+					"age": 32,
+					"first_name": "Elias",
+					"id": 25,
+					"joined_day": 2,
+					"last_name": "Brooks",
+					"loyalty": 85
+				},
+				{
+					"age": 20,
+					"first_name": "Gabriel",
+					"id": 27,
+					"joined_day": 3,
+					"last_name": "Brooks",
+					"loyalty": 81
+				},
+				{
+					"age": 53,
+					"first_name": "Hana",
+					"id": 28,
+					"joined_day": 5,
+					"last_name": "Brooks",
+					"loyalty": 78
+				},
+				{
+					"age": 24,
+					"first_name": "Isaac",
+					"id": 29,
+					"joined_day": 8,
+					"last_name": "Brooks",
+					"loyalty": 76
+				}
+			]
+		},
+		"player": {
+			"cash": 65258,
+			"heat": 29,
+			"influence": 130,
+			"loyalty": 73,
+			"members": 8,
+			"name": "Player",
+			"roster": [
+				{
+					"age": 34,
+					"first_name": "Tony",
+					"id": 1,
+					"joined_day": 1,
+					"last_name": "Vega",
+					"loyalty": 77
+				},
+				{
+					"age": 29,
+					"first_name": "Elena",
+					"id": 2,
+					"joined_day": 1,
+					"last_name": "Cruz",
+					"loyalty": 66
+				},
+				{
+					"age": 41,
+					"first_name": "Marcus",
+					"id": 3,
+					"joined_day": 1,
+					"last_name": "Reed",
+					"loyalty": 80
+				},
+				{
+					"age": 27,
+					"first_name": "Sofia",
+					"id": 4,
+					"joined_day": 1,
+					"last_name": "Chen",
+					"loyalty": 68
+				},
+				{
+					"age": 38,
+					"first_name": "Luca",
+					"id": 5,
+					"joined_day": 1,
+					"last_name": "Bennett",
+					"loyalty": 78
+				},
+				{
+					"age": 32,
+					"first_name": "Nadia",
+					"id": 6,
+					"joined_day": 1,
+					"last_name": "Brooks",
+					"loyalty": 70
+				},
+				{
+					"age": 46,
+					"first_name": "Victor",
+					"id": 7,
+					"joined_day": 1,
+					"last_name": "Santos",
+					"loyalty": 76
+				},
+				{
+					"age": 25,
+					"first_name": "Maya",
+					"id": 8,
+					"joined_day": 1,
+					"last_name": "Ellis",
+					"loyalty": 72
+				}
+			]
+		},
+		"romano": {
+			"cash": 38173,
+			"heat": 60,
+			"influence": 120,
+			"loyalty": 70,
+			"members": 9,
+			"name": "Romano Crew",
+			"roster": [
+				{
+					"age": 18,
+					"first_name": "Isaac",
+					"id": 9,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 78
+				},
+				{
+					"age": 29,
+					"first_name": "Jade",
+					"id": 10,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 62
+				},
+				{
+					"age": 34,
+					"first_name": "Kai",
+					"id": 11,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 76
+				},
+				{
+					"age": 31,
+					"first_name": "Leila",
+					"id": 12,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 64
+				},
+				{
+					"age": 55,
+					"first_name": "Mateo",
+					"id": 13,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 74
+				},
+				{
+					"age": 27,
+					"first_name": "Nina",
+					"id": 14,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 66
+				},
+				{
+					"age": 28,
+					"first_name": "Owen",
+					"id": 15,
+					"joined_day": 1,
+					"last_name": "Alvarez",
+					"loyalty": 70
+				},
+				{
+					"age": 54,
+					"first_name": "Farah",
+					"id": 26,
+					"joined_day": 3,
+					"last_name": "Brooks",
+					"loyalty": 65
+				},
+				{
+					"age": 46,
+					"first_name": "Jade",
+					"id": 30,
+					"joined_day": 9,
+					"last_name": "Brooks",
+					"loyalty": 75
+				}
+			]
+		}
+	},
+	"request_member_id": 2,
+	"request_name": "Elena Cruz",
+	"request_pending": true,
+	"rng_state": "-2596085209352148526",
+	"version": 2
+}

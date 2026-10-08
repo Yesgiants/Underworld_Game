@@ -4,21 +4,18 @@ extends RefCounted
 const WIDTH := 6
 const HEIGHT := 4
 const Member = preload("res://game/simulation/member_data.gd")
+const Layout = preload("res://game/simulation/city_layout.gd")
 const PLAYER := "player"
 const ORG_IDS := ["player", "romano", "moretti"]
-const NAMES := [
-	"North End", "Little Italy", "Old Quarter", "Uptown", "East Village", "The Heights",
-	"West Market", "Downtown", "Civic Center", "Midtown", "East Market", "Parkside",
-	"West Docks", "Warehouse Row", "Rail Yards", "Southbank", "Foundry", "Riverside",
-	"Harbor Point", "Fish Market", "Shipyards", "The Narrows", "South End", "Bayview",
-]
+const NAMES = Layout.NAMES
 const ACTIONS := ["operation", "claim", "recruit", "business", "lay_low"]
 const COSTS := {"operation": 0, "claim": 6000, "recruit": 2500, "business": 6500, "lay_low": 1800}
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
 const SAVE_PATH := "user://underworld_save.json"
 const STAT_LIMITS := {"cash": [0, 10000000], "heat": [0, 100], "influence": [0, 999], "members": [1, 60], "loyalty": [0, 100]}
 
 var day: int = 1
+var city_layout: String = Layout.IRON_HAVEN
 var market: int = 100
 var orders: int = 2
 var organizations: Dictionary = {}
@@ -49,15 +46,15 @@ func _init(world_seed: int = 2026) -> void:
 		var owner := "neutral"
 		if i in [6, 7, 12]:
 			owner = PLAYER
-		elif i in [0, 1, 2, 8, 9]:
+		elif i in [0, 1, 2, 8, 14]:
 			owner = "romano"
-		elif i in [15, 16, 21, 22]:
+		elif i in [9, 10, 15, 16]:
 			owner = "moretti"
 		var businesses := 0 if owner == "neutral" else 1
 		if i == 7:
 			businesses = 2
 		districts.append({"name": NAMES[i], "owner": owner, "businesses": businesses, "attention": 52 if i == 7 else 15 + i % 5 * 7})
-	_event("Police surveillance increased in Downtown.", "police")
+	_event("Police surveillance increased in Downtown, Iron Haven.", "police")
 	_event("Romano Crew is expanding near your territory.", "rival")
 	_event("Tony Vega requests a promotion. Review the member request.", "member")
 
@@ -82,18 +79,7 @@ func daily_payroll(org_id: String = PLAYER) -> int:
 	return int(organizations[org_id].members) * 140
 
 func neighbors(index: int) -> Array:
-	var result: Array = []
-	var x := index % WIDTH
-	var y := index / WIDTH
-	if x > 0:
-		result.append(index - 1)
-	if x < WIDTH - 1:
-		result.append(index + 1)
-	if y > 0:
-		result.append(index - WIDTH)
-	if y < HEIGHT - 1:
-		result.append(index + WIDTH)
-	return result
+	return Layout.neighbors(index, city_layout)
 
 func borders(index: int, org_id: String) -> bool:
 	for adjacent in neighbors(index):
@@ -120,7 +106,7 @@ func action_blocker(action: String, org_id: String = PLAYER, index: int = 7) -> 
 			if district.owner == org_id:
 				return "You already control this district."
 			if not borders(index, org_id):
-				return "Choose a district bordering your territory."
+				return "Choose a bordering district. Cross the river through a bridge approach." if city_layout == Layout.IRON_HAVEN else "Choose a district bordering your territory."
 			if int(org.members) < 5 or int(org.influence) < 40:
 				return "Requires 5 members and 40 influence."
 		"business":
@@ -494,7 +480,7 @@ func debug_advance(days: int) -> Dictionary:
 	return {"ok": true, "message": message}
 
 func save_data() -> Dictionary:
-	return {"version": SAVE_VERSION, "day": day, "market": market, "orders": orders,
+	return {"version": SAVE_VERSION, "city_layout": city_layout, "day": day, "market": market, "orders": orders,
 		"organizations": organizations.duplicate(true), "districts": districts.duplicate(true),
 		"events": events.duplicate(true), "request_pending": request_pending,
 		"request_name": request_name, "request_member_id": request_member_id,
@@ -528,6 +514,10 @@ func restore_data(data: Variant) -> bool:
 		data = _migrate_v1(data)
 		if data.is_empty():
 			return false
+	# Older saves retain their original district names and grid connections.
+	var saved_layout: Variant = Layout.LEGACY if int(data.version) == 2 else data.get("city_layout")
+	if saved_layout not in [Layout.LEGACY, Layout.IRON_HAVEN]:
+		return false
 	if not _integer(data.get("day"), 1, 100000) or not _integer(data.get("market"), 65, 135) or not _integer(data.get("orders"), 0, 2):
 		return false
 	if not data.get("request_pending") is bool or not data.get("request_name") is String:
@@ -570,7 +560,7 @@ func restore_data(data: Variant) -> bool:
 		return false
 	for i in range(data.districts.size()):
 		var district: Variant = data.districts[i]
-		if not district is Dictionary or district.get("name") != NAMES[i] or district.get("owner") not in ORG_IDS + ["neutral"]:
+		if not district is Dictionary or district.get("name") != Layout.names(saved_layout)[i] or district.get("owner") not in ORG_IDS + ["neutral"]:
 			return false
 		if not _integer(district.get("businesses"), 0, 3) or not _integer(district.get("attention"), 0, 100):
 			return false
@@ -582,6 +572,7 @@ func restore_data(data: Variant) -> bool:
 		if not entry.get("text") is String or entry.text.length() > 300 or entry.get("kind") not in ["player", "rival", "police", "member", "economy", "debug"]:
 			return false
 	day = int(data.day)
+	city_layout = saved_layout
 	market = int(data.market)
 	orders = int(data.orders)
 	organizations = data.organizations.duplicate(true)
@@ -651,7 +642,7 @@ func _migrate_v1(original: Dictionary) -> Dictionary:
 	data.request_name = Member.full_name(requester)
 	data.request_member_id = int(requester.id)
 	data.next_member_id = id
-	data.version = SAVE_VERSION
+	data.version = 2
 	return data
 
 static func _integer(value: Variant, minimum: int, maximum: int) -> bool:

@@ -21,6 +21,18 @@ func _run() -> void:
 	for i in range(5):
 		await process_frame
 	expect(ui.cash_label.text == "$48,250", "HUD displays starting cash")
+	expect(ui.map_title.text == "IRON HAVEN" and ui.map_hint.text.contains("2 BRIDGES"), "City heading identifies Iron Haven and its crossings")
+	for i in range(24):
+		expect(ui.map.district_at(ui.map.cell_rect(i).get_center()) == i, "District %d selects its own rectangle" % i)
+	var river_point := Vector2(ui.map._river_center(ui.map.size.y * 0.5), ui.map.size.y * 0.5)
+	expect(ui.map.district_at(river_point) == -1, "River water cannot select or claim a district")
+	var hover := InputEventMouseMotion.new()
+	hover.position = ui.map.cell_rect(8).get_center()
+	ui.map._gui_input(hover)
+	expect(ui.map.tooltip_text.contains("City Bridge"), "Bridge district tooltip describes its crossing")
+	ui._select_district(8)
+	expect(ui.district_label.text.contains("City Bridge"), "District inspection displays bridge approach")
+	ui._select_district(7)
 	expect(ui.members_button.text.contains("Members       8"), "Organization panel displays clickable members")
 	expect(ui.map.cell_rect(7).has_point(ui.map.cell_rect(7).get_center()), "Map exposes district rectangles")
 	var click := InputEventMouseButton.new()
@@ -109,6 +121,13 @@ func _run() -> void:
 	close_key.keycode = KEY_F3
 	ui._input(close_key)
 	expect(not debug.visible and ui.timer.is_stopped(), "F3 closes debug while preserving paused time")
+	ui._reset()
+	for i in range(3):
+		await process_frame
+	var old_save: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/v0.2.0_grid_save.json"))
+	expect(ui.world.restore_data(old_save), "UI can load an earlier v0.2 city")
+	ui._refresh()
+	expect(ui.map_title.text == "PROTOTYPE CITY" and ui.map.district_at(ui.map.cell_rect(3).get_center()) == 3, "Earlier save uses its original grid renderer and title")
 	ui._reset()
 	for i in range(3):
 		await process_frame

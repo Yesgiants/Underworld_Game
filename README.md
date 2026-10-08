@@ -1,8 +1,8 @@
 # Underworld_Game
 
 **Current development:** v0.2.0-dev. The annotated v0.1.0 tag remains the previous
-prototype snapshot. This iteration adds individual members and the Player name;
-the new city design is awaiting selection.
+prototype snapshot. This iteration adds individual members, the Player name,
+and Iron Haven, a river city with two strategic bridge crossings.
 
 ## Play the prototype
 
@@ -35,6 +35,10 @@ headlessly.
 
 - Select a district on the city map. Gold is Player, purple is Romano, teal is
   Moretti, and outlined gray districts are independent.
+- New cities use **Iron Haven**. The Calder River divides the old western city
+  from the eastern mill belt. Cross-bank claims must follow **City Bridge**
+  (City Hall ↔ East Market) or **Foundry Bridge** (Southbank ↔ Iron Gate).
+  Rival AI uses those same connections. Click bridge approaches to inspect them.
 - Issue up to **two orders per day**. Orders apply immediately. Hover over a
   button for its requirements and consequences.
 - **Run operation** earns cash and raises heat. **Open business** increases daily
@@ -129,13 +133,23 @@ New saves include profiles and stable identities. v0.1 saves migrate on load:
 Navarro becomes Player, finances and territory remain, and named rosters are
 created from the old crew counts and aggregate loyalty. The existing save path
 remains the same. New roster data is validated before replacing a live city.
+Saves from before Iron Haven retain the original district names, ownership,
+businesses, and grid connections. They display as **Prototype City**. Choose
+**New city** to start in Iron Haven; this leaves your existing disk save intact
+until you explicitly save the new city. New saves record their map identity.
 
-### City directions
+### Iron Haven
 
-Compare [four city concepts for the 1980s–1990s setting](docs/CITY_CONCEPTS.md):
-Port Alder, Ironhaven, Bellwick, and San Paloma. The comparison includes concept
-art, strategic possibilities, and relative implementation scope. The current
-city layout remains available while a new direction is selected.
+**Iron Haven** is the selected fictional city for the 1980s–1990s setting.
+See [the implemented map, districts, and bridge rules](docs/IRON_HAVEN.md).
+The Player begins around Downtown and West Market, Romano holds older west-bank
+neighborhoods, and Moretti controls eastern markets and industry. Both bridges
+are district connections; they have no separate ownership or toll system.
+District descriptions provide local character while economic and police rules
+remain shared across the city.
+
+The original [four city concepts](docs/CITY_CONCEPTS.md) remain available as design
+history. New games start with Iron Haven; older saves keep their original map.
 
 ### Validate the prototype
 
@@ -143,6 +157,7 @@ city layout remains available while a new direction is selected.
 godot --headless --path . --editor --import --quit
 godot --headless --path . --script tests/run_tests.gd
 godot --headless --path . --script tests/members_tests.gd
+godot --headless --path . --script tests/city_tests.gd
 godot --headless --path . --script tests/ui_smoke.gd
 ```
 
@@ -155,6 +170,9 @@ editing, scenarios, fast-forward, keyboard closing, and layout.
 Member tests cover stable identities, individual loyalty, named recruitment and
 departures, profile editing, save replay, malformed roster rejection, and
 migration from a save produced with the actual v0.1.0 implementation.
+City tests cover reciprocal and connected geography, bridge-only crossings for
+every faction, rival expansion, map validation, and replay after loading both
+Iron Haven and authentic pre-Iron Haven v0.2 development saves.
 
 The implementation lives in `game/simulation/world_state.gd` (world rules),
 `game/ui/city_map.gd` (map drawing and selection), and `game/ui/main.gd` (interface).
