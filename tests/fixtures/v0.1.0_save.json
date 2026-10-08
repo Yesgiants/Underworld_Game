@@ -1,0 +1,343 @@
+{
+	"day": 9,
+	"districts": [
+		{
+			"attention": 0,
+			"businesses": 1,
+			"name": "North End",
+			"owner": "romano"
+		},
+		{
+			"attention": 18,
+			"businesses": 1,
+			"name": "Little Italy",
+			"owner": "romano"
+		},
+		{
+			"attention": 13,
+			"businesses": 1,
+			"name": "Old Quarter",
+			"owner": "romano"
+		},
+		{
+			"attention": 20,
+			"businesses": 0,
+			"name": "Uptown",
+			"owner": "neutral"
+		},
+		{
+			"attention": 45,
+			"businesses": 0,
+			"name": "East Village",
+			"owner": "neutral"
+		},
+		{
+			"attention": 0,
+			"businesses": 0,
+			"name": "The Heights",
+			"owner": "neutral"
+		},
+		{
+			"attention": 6,
+			"businesses": 1,
+			"name": "West Market",
+			"owner": "navarro"
+		},
+		{
+			"attention": 58,
+			"businesses": 2,
+			"name": "Downtown",
+			"owner": "navarro"
+		},
+		{
+			"attention": 20,
+			"businesses": 2,
+			"name": "Civic Center",
+			"owner": "romano"
+		},
+		{
+			"attention": 27,
+			"businesses": 2,
+			"name": "Midtown",
+			"owner": "romano"
+		},
+		{
+			"attention": 0,
+			"businesses": 0,
+			"name": "East Market",
+			"owner": "neutral"
+		},
+		{
+			"attention": 6,
+			"businesses": 0,
+			"name": "Parkside",
+			"owner": "neutral"
+		},
+		{
+			"attention": 13,
+			"businesses": 1,
+			"name": "West Docks",
+			"owner": "navarro"
+		},
+		{
+			"attention": 20,
+			"businesses": 0,
+			"name": "Warehouse Row",
+			"owner": "neutral"
+		},
+		{
+			"attention": 49,
+			"businesses": 0,
+			"name": "Rail Yards",
+			"owner": "romano"
+		},
+		{
+			"attention": 11,
+			"businesses": 1,
+			"name": "Southbank",
+			"owner": "moretti"
+		},
+		{
+			"attention": 6,
+			"businesses": 1,
+			"name": "Foundry",
+			"owner": "moretti"
+		},
+		{
+			"attention": 53,
+			"businesses": 0,
+			"name": "Riverside",
+			"owner": "moretti"
+		},
+		{
+			"attention": 20,
+			"businesses": 0,
+			"name": "Harbor Point",
+			"owner": "neutral"
+		},
+		{
+			"attention": 27,
+			"businesses": 0,
+			"name": "Fish Market",
+			"owner": "neutral"
+		},
+		{
+			"attention": 0,
+			"businesses": 0,
+			"name": "Shipyards",
+			"owner": "neutral"
+		},
+		{
+			"attention": 6,
+			"businesses": 1,
+			"name": "The Narrows",
+			"owner": "moretti"
+		},
+		{
+			"attention": 25,
+			"businesses": 1,
+			"name": "South End",
+			"owner": "moretti"
+		},
+		{
+			"attention": 20,
+			"businesses": 0,
+			"name": "Bayview",
+			"owner": "neutral"
+		}
+	],
+	"events": [
+		{
+			"day": 9,
+			"kind": "rival",
+			"text": "Moretti Syndicate earned $3,503 from an operation in South End. Heat +9."
+		},
+		{
+			"day": 9,
+			"kind": "rival",
+			"text": "Romano Crew recruited a member (8 → 9). Daily payroll +$140."
+		},
+		{
+			"day": 9,
+			"kind": "economy",
+			"text": "Daily accounts: $2,618 income, $1,120 payroll. Market demand 85%."
+		},
+		{
+			"day": 8,
+			"kind": "police",
+			"text": "Police surveillance increased in East Village."
+		},
+		{
+			"day": 8,
+			"kind": "rival",
+			"text": "Moretti Syndicate recruited a member (12 → 13). Daily payroll +$140."
+		},
+		{
+			"day": 8,
+			"kind": "rival",
+			"text": "Romano Crew earned $2,660 from an operation in Little Italy. Heat +9."
+		},
+		{
+			"day": 8,
+			"kind": "economy",
+			"text": "Daily accounts: $2,741 income, $1,120 payroll. Market demand 89%."
+		},
+		{
+			"day": 7,
+			"kind": "member",
+			"text": "Marcus Reed requests a promotion."
+		},
+		{
+			"day": 7,
+			"kind": "rival",
+			"text": "Moretti Syndicate earned $2,848 from an operation in Southbank. Heat +9."
+		},
+		{
+			"day": 7,
+			"kind": "rival",
+			"text": "Romano Crew opened a business in Civic Center. Base daily revenue +$650."
+		},
+		{
+			"day": 7,
+			"kind": "economy",
+			"text": "Daily accounts: $2,648 income, $1,120 payroll. Market demand 86%."
+		},
+		{
+			"day": 6,
+			"kind": "rival",
+			"text": "Moretti Syndicate earned $2,659 from an operation in Riverside. Heat +9."
+		},
+		{
+			"day": 6,
+			"kind": "rival",
+			"text": "Romano Crew earned $2,357 from an operation in Rail Yards. Heat +9."
+		},
+		{
+			"day": 6,
+			"kind": "economy",
+			"text": "Daily accounts: $2,772 income, $1,120 payroll. Market demand 90%."
+		},
+		{
+			"day": 5,
+			"kind": "rival",
+			"text": "Moretti Syndicate recruited a member (11 → 12). Daily payroll +$140."
+		},
+		{
+			"day": 5,
+			"kind": "rival",
+			"text": "Romano Crew opened a business in Midtown. Base daily revenue +$650."
+		},
+		{
+			"day": 5,
+			"kind": "economy",
+			"text": "Daily accounts: $2,802 income, $1,120 payroll. Market demand 91%."
+		},
+		{
+			"day": 4,
+			"kind": "police",
+			"text": "Police surveillance increased in Riverside."
+		},
+		{
+			"day": 4,
+			"kind": "rival",
+			"text": "Moretti Syndicate took control of Riverside. Influence +8."
+		},
+		{
+			"day": 4,
+			"kind": "rival",
+			"text": "Romano Crew took control of Rail Yards. Influence +8."
+		},
+		{
+			"day": 4,
+			"kind": "economy",
+			"text": "Daily accounts: $2,864 income, $1,120 payroll. Market demand 93%."
+		},
+		{
+			"day": 3,
+			"kind": "rival",
+			"text": "Moretti Syndicate recruited a member (10 → 11). Daily payroll +$140."
+		},
+		{
+			"day": 3,
+			"kind": "rival",
+			"text": "Romano Crew recruited a member (7 → 8). Daily payroll +$140."
+		},
+		{
+			"day": 3,
+			"kind": "economy",
+			"text": "Daily accounts: $3,018 income, $1,120 payroll. Market demand 98%."
+		},
+		{
+			"day": 2,
+			"kind": "rival",
+			"text": "Moretti Syndicate recruited a member (9 → 10). Daily payroll +$140."
+		},
+		{
+			"day": 2,
+			"kind": "rival",
+			"text": "Navarro Organization held Downtown against Romano Crew. The challenge cost $6,000."
+		},
+		{
+			"day": 2,
+			"kind": "economy",
+			"text": "Daily accounts: $3,141 income, $1,120 payroll. Market demand 102%."
+		},
+		{
+			"day": 1,
+			"kind": "member",
+			"text": "Tony Vega's promotion was declined. Loyalty −5."
+		},
+		{
+			"day": 1,
+			"kind": "player",
+			"text": "Navarro Organization earned $3,364 from an operation in Downtown. Heat +9."
+		},
+		{
+			"day": 1,
+			"kind": "member",
+			"text": "Tony Vega requests a promotion. Review the member request."
+		},
+		{
+			"day": 1,
+			"kind": "rival",
+			"text": "Romano Crew is expanding near your territory."
+		},
+		{
+			"day": 1,
+			"kind": "police",
+			"text": "Police surveillance increased in Downtown."
+		}
+	],
+	"market": 85,
+	"orders": 2,
+	"organizations": {
+		"moretti": {
+			"cash": 46896,
+			"heat": 47,
+			"influence": 133,
+			"loyalty": 84,
+			"members": 13,
+			"name": "Moretti Syndicate"
+		},
+		"navarro": {
+			"cash": 65258,
+			"heat": 29,
+			"influence": 130,
+			"loyalty": 69,
+			"members": 8,
+			"name": "Navarro Organization"
+		},
+		"romano": {
+			"cash": 38173,
+			"heat": 60,
+			"influence": 120,
+			"loyalty": 70,
+			"members": 9,
+			"name": "Romano Crew"
+		}
+	},
+	"request_name": "Marcus Reed",
+	"request_pending": true,
+	"rng_state": "-2596085209352148526",
+	"version": 1
+}

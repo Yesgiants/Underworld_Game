@@ -30,7 +30,7 @@ func _initial_state() -> void:
 	var world = World.new()
 	expect(world.districts.size() == 24, "24 simulated districts")
 	expect(world.territory() == 3 and world.businesses() == 4, "Starting territory and businesses match the layout")
-	expect(world.organizations.navarro.cash == 48250 and world.organizations.navarro.members == 8, "Starting organization stats")
+	expect(world.organizations.player.cash == 48250 and world.organizations.player.members == 8, "Starting organization stats")
 	expect(world.daily_income() == 3080 and world.daily_payroll() == 1120, "Income and payroll derive from the world")
 	expect(world.neighbors(0) == [1, 6] and world.neighbors(5) == [4, 11], "Map edges do not wrap")
 
@@ -40,7 +40,7 @@ func _actions_and_orders() -> void:
 	expect(not world.perform_action("claim", World.PLAYER, 23).ok, "Cannot claim a remote district")
 	expect(snapshot(world) == before, "Rejected actions do not change cash, orders, events, or RNG")
 	expect(world.perform_action("business", World.PLAYER, 7).ok, "Business order succeeds on owned district")
-	expect(world.organizations.navarro.cash == 41750 and world.businesses() == 5 and world.daily_income() == 3730, "Business costs cash and increases income")
+	expect(world.organizations.player.cash == 41750 and world.businesses() == 5 and world.daily_income() == 3730, "Business costs cash and increases income")
 	expect(world.perform_action("claim", World.PLAYER, 13).ok, "Adjacent independent district can be claimed")
 	expect(world.districts[13].owner == World.PLAYER and world.territory() == 4, "Claim changes map ownership")
 	before = snapshot(world)
@@ -49,35 +49,35 @@ func _actions_and_orders() -> void:
 	expect(world.orders == 2, "New day replenishes orders")
 	var payroll: int = world.daily_payroll()
 	expect(world.perform_action("recruit").ok and world.daily_payroll() == payroll + 140, "Recruitment increases daily payroll")
-	var heat: int = world.organizations.navarro.heat
-	expect(world.perform_action("lay_low").ok and world.organizations.navarro.heat == maxi(0, heat - 14), "Lay low reduces heat")
+	var heat: int = world.organizations.player.heat
+	expect(world.perform_action("lay_low").ok and world.organizations.player.heat == maxi(0, heat - 14), "Lay low reduces heat")
 	var poor = World.new()
 	poor.organizations.romano.cash = 0
 	before = snapshot(poor)
 	expect(not poor.perform_action("claim", "romano", 3).ok and snapshot(poor) == before, "AI uses the same affordability rules")
 	var operation = World.new()
 	expect(operation.perform_action("operation").ok, "Operation can run in an owned district")
-	expect(operation.organizations.navarro.cash >= 50150 and operation.organizations.navarro.cash <= 52350 and operation.organizations.navarro.heat == 45, "Operation pays within its documented range and adds heat")
+	expect(operation.organizations.player.cash >= 50150 and operation.organizations.player.cash <= 52350 and operation.organizations.player.heat == 45, "Operation pays within its documented range and adds heat")
 
 func _economy() -> void:
 	var world = World.new()
 	world.advance_day()
 	var expected: int = 48250 + int(3080 * world.market / 100.0) - 1120
-	expect(world.organizations.navarro.cash == expected, "Daily accounts use market-adjusted income and payroll")
+	expect(world.organizations.player.cash == expected, "Daily accounts use market-adjusted income and payroll")
 	var bankrupt = World.new()
-	bankrupt.organizations.navarro.cash = 0
+	bankrupt.organizations.player.cash = 0
 	for district in bankrupt.districts:
 		if district.owner == World.PLAYER:
 			district.owner = "neutral"
-	var members: int = bankrupt.organizations.navarro.members
+	var members: int = bankrupt.organizations.player.members
 	bankrupt.advance_day()
-	expect(bankrupt.organizations.navarro.cash == 0 and bankrupt.organizations.navarro.members == members - 1, "Unpaid payroll triggers loss rather than negative cash")
-	expect(bankrupt.organizations.navarro.loyalty < 74, "Unpaid payroll lowers loyalty")
+	expect(bankrupt.organizations.player.cash == 0 and bankrupt.organizations.player.members == members - 1, "Unpaid payroll triggers loss rather than negative cash")
+	expect(bankrupt.organizations.player.loyalty < 74, "Unpaid payroll lowers loyalty")
 
 func _member_requests() -> void:
 	var world = World.new()
 	expect(world.resolve_request(true).ok, "Pending member can be promoted")
-	expect(world.organizations.navarro.cash == 47050 and world.organizations.navarro.loyalty == 80 and world.orders == 2, "Promotion applies cost and loyalty without consuming an order")
+	expect(world.organizations.player.cash == 47050 and world.find_member(World.PLAYER, 1).loyalty == 88 and world.organizations.player.loyalty == 75 and world.orders == 2, "Promotion changes the requesting person's loyalty and recalculates the crew average without consuming an order")
 	var before := snapshot(world)
 	expect(not world.resolve_request(true).ok and snapshot(world) == before, "A request cannot be resolved twice")
 	for i in range(6):
@@ -100,10 +100,10 @@ func _ai_and_police() -> void:
 	var police = World.new(99)
 	var investigation := false
 	for i in range(10):
-		police.organizations.navarro.heat = 100
+		police.organizations.player.heat = 100
 		police.advance_day()
 		for entry in police.events:
-			if entry.text.begins_with("Police investigated Navarro"):
+			if entry.text.begins_with("Police investigated Player"):
 				investigation = true
 	expect(investigation, "High player heat provokes police investigations")
 
@@ -142,7 +142,7 @@ func _bad_saves() -> void:
 	bad_owner.districts[0].owner = "unknown"
 	invalid.append(bad_owner)
 	var bad_money: Dictionary = world.save_data()
-	bad_money.organizations.navarro.cash = -5
+	bad_money.organizations.player.cash = -5
 	invalid.append(bad_money)
 	var bad_time: Dictionary = world.save_data()
 	bad_time.day = 1.25

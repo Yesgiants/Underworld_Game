@@ -1,5 +1,9 @@
 # Underworld_Game
 
+**Current development:** v0.2.0-dev. The annotated v0.1.0 tag remains the previous
+prototype snapshot. This iteration adds individual members and the Player name;
+the new city design is awaiting selection.
+
 ## Play the prototype
 
 The first playable prototype is a small Godot management game: a clickable city
@@ -29,7 +33,7 @@ headlessly.
 
 ### How to play
 
-- Select a district on the city map. Gold is Navarro, purple is Romano, teal is
+- Select a district on the city map. Gold is Player, purple is Romano, teal is
   Moretti, and outlined gray districts are independent.
 - Issue up to **two orders per day**. Orders apply immediately. Hover over a
   button for its requirements and consequences.
@@ -44,7 +48,7 @@ headlessly.
   district statistic is currently informational, while organization heat drives
   investigations.
 - Review promotion requests to manage loyalty. Each promotion costs $1,200 and
-  grants 6 loyalty; declining loses 5. Member decisions do not use daily orders.
+  grants the requesting person 6 loyalty; declining reduces that person's loyalty by 5. Member decisions do not use daily orders.
 - Click **Next day** (or Space when no button has focus) to settle accounts and let
   rivals act. **Run time** advances a day every 2.5 seconds; click again to pause.
 - **Save** and **Load** keep one local save under Godot's `user://` directory,
@@ -53,9 +57,9 @@ headlessly.
 
 This is an open-ended sandbox, with no victory condition yet. The simulation is
 turn based; automatic time is a convenience for advancing the same daily steps.
-Members are currently an organization count with shared loyalty and named
-promotion events, rather than individual simulated NPCs. Rival AI uses the same
-action costs, ownership, adjacency, and heat rules as the player, with one order
+Members now have stable identities, first and last names, adult ages, and
+individual loyalty. Crew count and average loyalty are derived from the roster.
+Rival AI uses the same action costs, ownership, adjacency, and heat rules as the player, with one order
 per rival each day. Rivals that lose all territory cannot currently return.
 Rivals seek larger crews as they gain territory, provided recruitment preserves
 three days of payroll and daily revenue supports another member. Below six
@@ -69,7 +73,7 @@ police investigations can detain them. Events show the actual before/after count
 Click **Debug [F3]** or press **F3** to open the simulation editor. It pauses time;
 closing with F3, Escape, or Close leaves time paused.
 
-- Choose Navarro, Romano, or Moretti and edit **cash, members, heat, influence,
+- Choose Player, Romano, or Moretti and edit **cash, members, heat, influence,
   and loyalty**, then click **Apply faction stats**.
 - Inspect daily income, payroll, crew targets, recruitment funding requirements,
   and the rival's **last AI decision and reason**.
@@ -90,18 +94,55 @@ To see rivals hire and lose members immediately:
    observe investigations; police decisions remain probabilistic.
 
 Scenario buttons prepare the selected faction without advancing time. Use a
-rival to test autonomous recruitment; Navarro remains player controlled.
+rival to test autonomous recruitment; Player remains player controlled.
 Debug edits modify the current city and are included in ordinary saves.
 Opening the panel only inspects the city. Values are bounded to valid save ranges,
 and existing saves remain loadable. Membership history retains the latest 100
 changes for the current session; it and the last-decision diagnostics reset on
 load, while normal saved events remain available.
 
+### Individual members
+
+Click the gold **Members →** link in the Player panel to open the roster page.
+Select a row to see that person's first name, last name, age in years, and loyalty.
+The faction selector also lets you inspect Romano and Moretti members.
+Opening the page pauses time; Escape closes it and leaves time paused.
+
+- Recruitment creates a new, named person with a unique ID and join day.
+- Payroll, loyalty departures, and police detention remove specific people.
+  Departure events name the person. A departure also closes that person's pending
+  promotion request.
+- Promotions affect the requesting individual's loyalty. Missed payroll, police
+  pressure, low-profile actions, and recruitment conditions affect crew loyalty.
+- Organization loyalty is the rounded average of individual loyalty, and member
+  count always matches the roster. A member below 35 loyalty can leave even if the
+  organization's average is healthy.
+- Ages are recorded profile values; birthdays and aging are not yet simulated.
+- Press F3 or enable **Debug editing** on the Members page to change an individual's
+  first name, last name, age, or loyalty, then click Apply member edits.
+  **Inspect members** in the general debug panel opens the chosen faction in this
+  editing mode.
+- The general debug member-count override now adds/removes actual roster entries.
+  Its loyalty override sets every member's loyalty to the chosen value.
+
+New saves include profiles and stable identities. v0.1 saves migrate on load:
+Navarro becomes Player, finances and territory remain, and named rosters are
+created from the old crew counts and aggregate loyalty. The existing save path
+remains the same. New roster data is validated before replacing a live city.
+
+### City directions
+
+Compare [four city concepts for the 1980s–1990s setting](docs/CITY_CONCEPTS.md):
+Port Alder, Ironhaven, Bellwick, and San Paloma. The comparison includes concept
+art, strategic possibilities, and relative implementation scope. The current
+city layout remains available while a new direction is selected.
+
 ### Validate the prototype
 
 ```bash
-godot --headless --path . --editor --import
+godot --headless --path . --editor --import --quit
 godot --headless --path . --script tests/run_tests.gd
+godot --headless --path . --script tests/members_tests.gd
 godot --headless --path . --script tests/ui_smoke.gd
 ```
 
@@ -111,6 +152,9 @@ save/load, rejection of malformed saves, autonomous rival recruitment and losses
 and validated debug edits/scenarios. The UI smoke test exercises district
 selection, actions, HUD updates, time controls, promotion decisions, debug stat
 editing, scenarios, fast-forward, keyboard closing, and layout.
+Member tests cover stable identities, individual loyalty, named recruitment and
+departures, profile editing, save replay, malformed roster rejection, and
+migration from a save produced with the actual v0.1.0 implementation.
 
 The implementation lives in `game/simulation/world_state.gd` (world rules),
 `game/ui/city_map.gd` (map drawing and selection), and `game/ui/main.gd` (interface).
@@ -294,7 +338,7 @@ The directory structure will evolve as development progresses.
 
 Current priorities:
 
-- Expand members into individual simulated characters
+- Add member skills, traits, assignments, and independent goals
 - Add deeper organization relationships and competing goals
 - Improve economic balance through playtesting
 - Expand activities, investigations, and emergent events

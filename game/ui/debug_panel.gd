@@ -22,6 +22,7 @@ var apply_stats_button: Button
 var apply_district_button: Button
 var apply_world_button: Button
 var advance_buttons: Dictionary = {}
+var inspect_members_button: Button
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -60,6 +61,8 @@ func _ready() -> void:
 	faction_picker.select(1)
 	faction_picker.item_selected.connect(func(_index: int) -> void: refresh())
 	faction_row.add_child(faction_picker)
+	inspect_members_button = host._button("Inspect members", func() -> void: host._open_members(faction_id(), true), "Open this faction's individual roster with debug editing enabled.")
+	faction_row.add_child(inspect_members_button)
 
 	var columns := _row(content, 20)
 	var edits := VBoxContainer.new()
@@ -205,7 +208,7 @@ func refresh() -> void:
 	var lines := ""
 	for entry in world.member_changes:
 		if entry.organization == org_id:
-			lines += "Day %02d   %d → %d   %s\n" % [entry.day, entry.before, entry.after, entry.reason]
+			lines += "Day %02d   %d → %d   %s%s\n" % [entry.day, entry.before, entry.after, entry.reason, " · " + entry.person if not entry.person.is_empty() else ""]
 	history.text = lines if not lines.is_empty() else "No membership changes recorded this session. Recruitment, departures, detention, and debug overrides appear here."
 
 func _read_district() -> void:

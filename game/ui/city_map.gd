@@ -5,7 +5,7 @@ signal district_selected(index: int)
 
 const World = preload("res://game/simulation/world_state.gd")
 const COLORS := {
-	"navarro": Color("#dfa65b"), "romano": Color("#aa8ccb"),
+	"player": Color("#dfa65b"), "romano": Color("#aa8ccb"),
 	"moretti": Color("#69b4b0"), "neutral": Color("#526071"),
 }
 var world: RefCounted

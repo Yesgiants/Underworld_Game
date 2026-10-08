@@ -21,7 +21,7 @@ func _run() -> void:
 	for i in range(5):
 		await process_frame
 	expect(ui.cash_label.text == "$48,250", "HUD displays starting cash")
-	expect(ui.org_stats.text.contains("Members       8"), "Organization panel displays members")
+	expect(ui.members_button.text.contains("Members       8"), "Organization panel displays clickable members")
 	expect(ui.map.cell_rect(7).has_point(ui.map.cell_rect(7).get_center()), "Map exposes district rectangles")
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
@@ -30,7 +30,7 @@ func _run() -> void:
 	ui.map._gui_input(click)
 	expect(ui.selected == 13 and not ui.action_buttons.claim.disabled, "Clicking adjacent district selects it and enables claim")
 	ui.action_buttons.claim.pressed.emit()
-	expect(ui.world.districts[13].owner == "navarro" and ui.cash_label.text == "$42,250", "Claim control updates simulation, map, and cash HUD")
+	expect(ui.world.districts[13].owner == "player" and ui.cash_label.text == "$42,250", "Claim control updates simulation, map, and cash HUD")
 	ui.next_button.pressed.emit()
 	expect(ui.world.day == 2 and ui.date_label.text.begins_with("DAY 02") and ui.world.orders == 2, "Next day refreshes time and orders")
 	ui.request_yes.pressed.emit()
@@ -82,7 +82,7 @@ func _run() -> void:
 	debug.business_field.get_line_edit().text = "3"
 	debug.attention_field.get_line_edit().text = "90"
 	debug.apply_district_button.pressed.emit()
-	expect(ui.world.districts[23].owner == "navarro" and ui.world.districts[23].businesses == 3 and ui.world.districts[23].attention == 90 and ui.selected == 23, "Debug district overrides update the city map")
+	expect(ui.world.districts[23].owner == "player" and ui.world.districts[23].businesses == 3 and ui.world.districts[23].attention == 90 and ui.selected == 23, "Debug district overrides update the city map")
 	var day: int = ui.world.day
 	debug.advance_buttons[7].pressed.emit()
 	expect(ui.world.day == day + 7, "Debug seven-day fast-forward button works")
@@ -109,6 +109,56 @@ func _run() -> void:
 	close_key.keycode = KEY_F3
 	ui._input(close_key)
 	expect(not debug.visible and ui.timer.is_stopped(), "F3 closes debug while preserving paused time")
+	ui._reset()
+	for i in range(3):
+		await process_frame
+	ui.auto_button.pressed.emit()
+	var roster_before: Dictionary = ui.world.save_data()
+	ui.members_button.pressed.emit()
+	var page = ui.members_page
+	expect(page.visible and ui.timer.is_stopped(), "Clickable Members link opens roster and pauses time")
+	expect(ui.world.save_data() == roster_before, "Inspecting members preserves world state and random generator")
+	expect(page.member_tree.get_root().get_child_count() == 8 and page.summary_label.text.begins_with("Player"), "Members page shows the Player roster")
+	expect(page.name_label.text == "Tony Vega" and page.details_label.text.contains("34") and page.loyalty_label.text.contains("82"), "Selected profile displays its own full name, age, and loyalty")
+	for i in range(3):
+		await process_frame
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--capture-members="):
+			await RenderingServer.frame_post_draw
+			expect(root.get_texture().get_image().save_png(arg.trim_prefix("--capture-members=")) == OK, "Members screenshot saved")
+	var roster_panel: Control = page.get_child(1)
+	expect(roster_panel.get_global_rect().position.y >= 0 and roster_panel.get_global_rect().end.y <= root.size.y and roster_panel.get_global_rect().end.x <= root.size.x, "Members page fits the viewport")
+	var elena: TreeItem = page.member_tree.get_root().get_child(1)
+	elena.select(0)
+	page.member_tree.item_selected.emit()
+	expect(page.name_label.text == "Elena Cruz" and page.selected_id == 2, "Clicking another member changes the profile")
+	var edit_key := InputEventKey.new()
+	edit_key.pressed = true
+	edit_key.keycode = KEY_F3
+	ui._input(edit_key)
+	expect(page.editor.visible and not ui.debug_panel.visible, "F3 on Members page enables individual editing")
+	page.first_name_edit.text = "Elena"
+	page.last_name_edit.text = "Voss"
+	page.age_edit.get_line_edit().text = "31"
+	page.loyalty_edit.get_line_edit().text = "35"
+	page.apply_button.pressed.emit()
+	expect(ui.world.find_member("player", 2).last_name == "Voss" and ui.world.find_member("player", 2).age == 31 and ui.world.find_member("player", 2).loyalty == 35, "Individual edits update the actual member")
+	expect(page.name_label.text == "Elena Voss" and page.selected_id == 2 and ui.loyalty_label.text.contains(str(ui.world.organizations.player.loyalty)), "Profile identity and crew average refresh after editing")
+	page.faction_picker.select(1)
+	page.faction_picker.item_selected.emit(1)
+	expect(page.org_id == "romano" and page.member_tree.get_root().get_child_count() == 7, "Members page can inspect rival people")
+	ui.world.debug_set_organization("romano", {"members": 9})
+	ui._refresh()
+	expect(page.member_tree.get_root().get_child_count() == 9, "Roster count updates after faction debug resizing")
+	page.close()
+	ui.debug_button.pressed.emit()
+	ui.debug_panel.inspect_members_button.pressed.emit()
+	expect(page.visible and page.org_id == "romano" and page.editor.visible and not ui.debug_panel.visible, "Debug Inspect members opens the chosen faction with individual editing")
+	var escape := InputEventKey.new()
+	escape.pressed = true
+	escape.keycode = KEY_ESCAPE
+	ui._input(escape)
+	expect(not page.visible and ui.timer.is_stopped(), "Escape closes Members page and leaves time paused")
 	ui._reset()
 	for i in range(3):
 		await process_frame

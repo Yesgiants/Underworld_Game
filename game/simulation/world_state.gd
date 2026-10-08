@@ -3,8 +3,9 @@ extends RefCounted
 
 const WIDTH := 6
 const HEIGHT := 4
-const PLAYER := "navarro"
-const ORG_IDS := ["navarro", "romano", "moretti"]
+const Member = preload("res://game/simulation/member_data.gd")
+const PLAYER := "player"
+const ORG_IDS := ["player", "romano", "moretti"]
 const NAMES := [
 	"North End", "Little Italy", "Old Quarter", "Uptown", "East Village", "The Heights",
 	"West Market", "Downtown", "Civic Center", "Midtown", "East Market", "Parkside",
@@ -13,7 +14,7 @@ const NAMES := [
 ]
 const ACTIONS := ["operation", "claim", "recruit", "business", "lay_low"]
 const COSTS := {"operation": 0, "claim": 6000, "recruit": 2500, "business": 6500, "lay_low": 1800}
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 const SAVE_PATH := "user://underworld_save.json"
 const STAT_LIMITS := {"cash": [0, 10000000], "heat": [0, 100], "influence": [0, 999], "members": [1, 60], "loyalty": [0, 100]}
 
@@ -25,6 +26,8 @@ var districts: Array = []
 var events: Array = []
 var request_pending: bool = true
 var request_name: String = "Tony Vega"
+var request_member_id: int = 1
+var next_member_id: int = 1
 var rng := RandomNumberGenerator.new()
 # Diagnostics are observations, not simulation inputs. They reset on load.
 var ai_decisions: Dictionary = {}
@@ -33,10 +36,15 @@ var member_changes: Array = []
 func _init(world_seed: int = 2026) -> void:
 	rng.seed = world_seed
 	organizations = {
-		"navarro": {"name": "Navarro Organization", "cash": 48250, "heat": 36, "influence": 127, "members": 8, "loyalty": 74},
+		"player": {"name": "Player", "cash": 48250, "heat": 36, "influence": 127, "members": 8, "loyalty": 74},
 		"romano": {"name": "Romano Crew", "cash": 38000, "heat": 42, "influence": 104, "members": 7, "loyalty": 68},
 		"moretti": {"name": "Moretti Syndicate", "cash": 42000, "heat": 28, "influence": 116, "members": 9, "loyalty": 80},
 	}
+	for org_id in ORG_IDS:
+		var org: Dictionary = organizations[org_id]
+		org.roster = Member.starting_roster(int(org.members), int(org.loyalty), next_member_id, org_id == PLAYER)
+		next_member_id += int(org.members)
+		_sync_roster(org)
 	for i in range(WIDTH * HEIGHT):
 		var owner := "neutral"
 		if i in [6, 7, 12]:
@@ -166,17 +174,17 @@ func perform_action(action: String, org_id: String = PLAYER, index: int = 7) -> 
 				message = "%s held %s against %s. The challenge cost $6,000." % [organizations[previous].name, district.name, org.name]
 		"recruit":
 			var previous_members: int = org.members
-			org.members += 1
-			_record_membership(org_id, previous_members, int(org.members), "recruitment")
-			org.loyalty = mini(100, int(org.loyalty) + 1)
-			message = "%s recruited a member (%d → %d). Daily payroll +$140." % [org.name, previous_members, org.members]
+			var recruit := _add_member(org_id)
+			_adjust_loyalty(org, 1)
+			_record_membership(org_id, previous_members, int(org.members), "recruitment", Member.full_name(recruit))
+			message = "%s recruited %s (%d → %d). Daily payroll +$140." % [org.name, Member.full_name(recruit), previous_members, org.members]
 		"business":
 			district.businesses += 1
 			org.influence += 2
 			message = "%s opened a business in %s. Base daily revenue +$650." % [org.name, district.name]
 		"lay_low":
 			org.heat = maxi(0, int(org.heat) - 14)
-			org.loyalty = mini(100, int(org.loyalty) + 2)
+			_adjust_loyalty(org, 2)
 			message = "%s is keeping a low profile. Heat −14." % org.name
 	_normalize(org)
 	_event(message, "player" if org_id == PLAYER else "rival")
@@ -186,14 +194,18 @@ func resolve_request(promote: bool) -> Dictionary:
 	if not request_pending:
 		return {"ok": false, "message": "No member request pending."}
 	var org: Dictionary = organizations[PLAYER]
+	var member := find_member(PLAYER, request_member_id)
+	if member.is_empty():
+		return {"ok": false, "message": "The requesting member is no longer in your roster."}
 	if promote and int(org.cash) < 1200:
 		return {"ok": false, "message": "Promotion requires $1,200."}
 	request_pending = false
 	if promote:
 		org.cash -= 1200
-		org.loyalty = mini(100, int(org.loyalty) + 6)
+		member.loyalty = mini(100, int(member.loyalty) + 6)
 	else:
-		org.loyalty = maxi(0, int(org.loyalty) - 5)
+		member.loyalty = maxi(0, int(member.loyalty) - 5)
+	_sync_roster(org)
 	var message := "%s was promoted. Loyalty +6." % request_name if promote else "%s's promotion was declined. Loyalty −5." % request_name
 	_event(message, "member")
 	return {"ok": true, "message": message}
@@ -210,12 +222,12 @@ func advance_day() -> void:
 		var payroll := daily_payroll(org_id)
 		org.cash += income
 		if int(org.cash) < payroll:
-			org.loyalty -= 8
+			_adjust_loyalty(org, -8)
 			_lose_member(org_id, "unpaid payroll", "economy")
 			_event("%s missed payroll. Loyalty −8." % org.name, "economy")
 		org.cash = maxi(0, int(org.cash) - payroll)
 		org.heat = maxi(0, int(org.heat) - 2)
-		if int(org.loyalty) < 35 and int(org.members) > 3 and rng.randf() < 0.2:
+		if _least_loyal(org).loyalty < 35 and int(org.members) > 3 and rng.randf() < 0.2:
 			_lose_member(org_id, "low loyalty", "member")
 		_normalize(org)
 		if org_id == PLAYER:
@@ -225,7 +237,10 @@ func advance_day() -> void:
 	_police_turn()
 	if day % 7 == 0 and not request_pending:
 		request_pending = true
-		request_name = ["Tony Vega", "Elena Cruz", "Marcus Reed"][rng.randi_range(0, 2)]
+		var roster: Array = organizations[PLAYER].roster
+		var requester: Dictionary = roster[rng.randi_range(0, roster.size() - 1)]
+		request_member_id = int(requester.id)
+		request_name = Member.full_name(requester)
 		_event("%s requests a promotion." % request_name, "member")
 
 func _ai_turn(org_id: String) -> void:
@@ -280,10 +295,10 @@ func _ai_action(action: String, org_id: String, index: int, reason: String) -> D
 	ai_decisions[org_id] = {"day": day, "action": action, "reason": reason if result.ok else result.message}
 	return result
 
-func _record_membership(org_id: String, before: int, after: int, reason: String) -> void:
+func _record_membership(org_id: String, before: int, after: int, reason: String, person: String = "") -> void:
 	if before == after:
 		return
-	member_changes.push_front({"day": day, "organization": org_id, "before": before, "after": after, "reason": reason})
+	member_changes.push_front({"day": day, "organization": org_id, "before": before, "after": after, "reason": reason, "person": person})
 	if member_changes.size() > 100:
 		member_changes.resize(100)
 
@@ -292,9 +307,12 @@ func _lose_member(org_id: String, reason: String, kind: String) -> void:
 	if int(org.members) <= 3:
 		return
 	var before: int = org.members
-	org.members -= 1
-	_record_membership(org_id, before, int(org.members), reason)
-	_event("%s lost a member to %s (%d → %d)." % [org.name, reason, before, org.members], kind)
+	var member: Dictionary = org.roster[rng.randi_range(0, org.roster.size() - 1)] if reason == "police detention" else _least_loyal(org)
+	org.roster.erase(member)
+	_cancel_departed_request(int(member.id))
+	_sync_roster(org)
+	_record_membership(org_id, before, int(org.members), reason, Member.full_name(member))
+	_event("%s lost %s to %s (%d → %d)." % [org.name, Member.full_name(member), reason, before, org.members], kind)
 
 func _police_turn() -> void:
 	for org_id in ORG_IDS:
@@ -303,7 +321,7 @@ func _police_turn() -> void:
 			var fine := mini(int(org.cash), rng.randi_range(2200, 4500))
 			org.cash -= fine
 			org.heat = maxi(0, int(org.heat) - 12)
-			org.loyalty = maxi(0, int(org.loyalty) - 4)
+			_adjust_loyalty(org, -4)
 			_lose_member(org_id, "police detention", "police")
 			_event("Police investigated %s. $%s seized; loyalty −4." % [org.name, money(fine)], "police")
 	if day % 4 == 0:
@@ -313,10 +331,78 @@ func _police_turn() -> void:
 
 func _normalize(org: Dictionary) -> void:
 	org.cash = clampi(int(org.cash), 0, 10000000)
-	org.members = clampi(int(org.members), 1, 60)
 	org.heat = clampi(int(org.heat), 0, 100)
 	org.influence = clampi(int(org.influence), 0, 999)
-	org.loyalty = clampi(int(org.loyalty), 0, 100)
+	_sync_roster(org)
+
+func find_member(org_id: String, member_id: int) -> Dictionary:
+	if org_id not in ORG_IDS:
+		return {}
+	for member in organizations[org_id].roster:
+		if int(member.id) == member_id:
+			return member
+	return {}
+
+func _sync_roster(org: Dictionary) -> void:
+	org.members = org.roster.size()
+	var total := 0
+	for member in org.roster:
+		total += int(member.loyalty)
+	org.loyalty = roundi(float(total) / org.roster.size())
+
+func _adjust_loyalty(org: Dictionary, delta: int) -> void:
+	for member in org.roster:
+		member.loyalty = clampi(int(member.loyalty) + delta, 0, 100)
+	_sync_roster(org)
+
+func _least_loyal(org: Dictionary) -> Dictionary:
+	var result: Dictionary = org.roster[0]
+	for member in org.roster:
+		if int(member.loyalty) < int(result.loyalty):
+			result = member
+	return result
+
+func _add_member(org_id: String) -> Dictionary:
+	var org: Dictionary = organizations[org_id]
+	var member := Member.create(next_member_id, day, int(org.loyalty))
+	next_member_id += 1
+	org.roster.append(member)
+	_sync_roster(org)
+	return member
+
+func _cancel_departed_request(member_id: int) -> void:
+	if request_pending and request_member_id == member_id:
+		request_pending = false
+		_event("%s's promotion request closed because they left the roster." % request_name, "member")
+
+func debug_set_member(org_id: String, member_id: int, values: Dictionary) -> Dictionary:
+	var member := find_member(org_id, member_id)
+	if member.is_empty() or values.is_empty():
+		return {"ok": false, "message": "Select an active member and at least one field."}
+	for field in values:
+		if field in ["first_name", "last_name"]:
+			if not _valid_name(values[field]):
+				return {"ok": false, "message": "Names must contain 1–40 visible characters."}
+		elif field == "age":
+			if not _integer(values[field], 18, 100):
+				return {"ok": false, "message": "Age must be 18–100."}
+		elif field == "loyalty":
+			if not _integer(values[field], 0, 100):
+				return {"ok": false, "message": "Loyalty must be 0–100."}
+		else:
+			return {"ok": false, "message": "Unknown member field."}
+	var previous_name := Member.full_name(member)
+	for field in values:
+		member[field] = values[field].strip_edges() if field in ["first_name", "last_name"] else int(values[field])
+	_sync_roster(organizations[org_id])
+	if request_member_id == member_id:
+		request_name = Member.full_name(member)
+	var message := "[DEBUG] %s's profile updated." % previous_name
+	_event(message, "debug")
+	return {"ok": true, "message": message}
+
+static func _valid_name(value: Variant) -> bool:
+	return value is String and not value.strip_edges().is_empty() and value.length() <= 40 and not "\n" in value and not "\r" in value and not "\t" in value
 
 func _event(text: String, kind: String) -> void:
 	events.push_front({"day": day, "text": text, "kind": kind})
@@ -339,8 +425,20 @@ func debug_set_organization(org_id: String, values: Dictionary) -> Dictionary:
 		if field not in STAT_LIMITS or not _integer(values[field], STAT_LIMITS[field][0], STAT_LIMITS[field][1]):
 			return {"ok": false, "message": "Invalid faction stat: %s." % field}
 	var before: int = organizations[org_id].members
+	var org: Dictionary = organizations[org_id]
+	if "members" in values:
+		while org.roster.size() < int(values.members):
+			_add_member(org_id)
+		while org.roster.size() > int(values.members):
+			var removed: Dictionary = org.roster.pop_back()
+			_cancel_departed_request(int(removed.id))
 	for field in values:
-		organizations[org_id][field] = int(values[field])
+		if field == "loyalty":
+			for member in org.roster:
+				member.loyalty = int(values.loyalty)
+		elif field != "members":
+			org[field] = int(values[field])
+	_sync_roster(org)
 	_record_membership(org_id, before, int(organizations[org_id].members), "debug override")
 	var message := "[DEBUG] %s stats overridden." % organizations[org_id].name
 	_event(message, "debug")
@@ -399,7 +497,8 @@ func save_data() -> Dictionary:
 	return {"version": SAVE_VERSION, "day": day, "market": market, "orders": orders,
 		"organizations": organizations.duplicate(true), "districts": districts.duplicate(true),
 		"events": events.duplicate(true), "request_pending": request_pending,
-		"request_name": request_name, "rng_state": str(rng.state)}
+		"request_name": request_name, "request_member_id": request_member_id,
+		"next_member_id": next_member_id, "rng_state": str(rng.state)}
 
 func save_game(path: String = SAVE_PATH) -> Error:
 	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
@@ -425,14 +524,22 @@ func restore_data(data: Variant) -> bool:
 	# Validate the complete save before touching the live world.
 	if not data is Dictionary or not _integer(data.get("version"), 1, SAVE_VERSION):
 		return false
+	if int(data.version) == 1:
+		data = _migrate_v1(data)
+		if data.is_empty():
+			return false
 	if not _integer(data.get("day"), 1, 100000) or not _integer(data.get("market"), 65, 135) or not _integer(data.get("orders"), 0, 2):
 		return false
 	if not data.get("request_pending") is bool or not data.get("request_name") is String:
 		return false
 	if data.request_name.length() > 80 or not data.get("rng_state") is String or not data.rng_state.is_valid_int():
 		return false
+	if not _integer(data.get("next_member_id"), 2, 10000000) or not _integer(data.get("request_member_id"), 1, int(data.next_member_id) - 1):
+		return false
 	if not data.get("organizations") is Dictionary or data.organizations.size() != ORG_IDS.size():
 		return false
+	var used_ids := {}
+	var pending_request_valid: bool = not data.request_pending
 	for org_id in ORG_IDS:
 		var org: Variant = data.organizations.get(org_id)
 		if not org is Dictionary or not org.get("name") is String or org.name != organizations[org_id].name:
@@ -441,6 +548,24 @@ func restore_data(data: Variant) -> bool:
 			var limits: Array = STAT_LIMITS[field]
 			if not _integer(org.get(field), limits[0], limits[1]):
 				return false
+		if not org.get("roster") is Array or org.roster.size() != int(org.members):
+			return false
+		var total_loyalty := 0
+		for member in org.roster:
+			if not member is Dictionary or not _valid_name(member.get("first_name")) or not _valid_name(member.get("last_name")):
+				return false
+			if not _integer(member.get("id"), 1, int(data.next_member_id) - 1) or used_ids.has(int(member.id)):
+				return false
+			if not _integer(member.get("age"), 18, 100) or not _integer(member.get("loyalty"), 0, 100) or not _integer(member.get("joined_day"), 1, int(data.day)):
+				return false
+			used_ids[int(member.id)] = true
+			total_loyalty += int(member.loyalty)
+			if org_id == PLAYER and int(member.id) == int(data.request_member_id) and Member.full_name(member) == data.request_name:
+				pending_request_valid = true
+		if int(org.loyalty) != roundi(float(total_loyalty) / org.roster.size()):
+			return false
+	if not pending_request_valid:
+		return false
 	if not data.get("districts") is Array or data.districts.size() != WIDTH * HEIGHT:
 		return false
 	for i in range(data.districts.size()):
@@ -465,6 +590,9 @@ func restore_data(data: Variant) -> bool:
 	# Godot's JSON parser returns floats for numeric values. Restore integer
 	# simulation fields so arithmetic and subsequent saves remain identical.
 	for org_id in ORG_IDS:
+		for member in organizations[org_id].roster:
+			for field in ["id", "age", "loyalty", "joined_day"]:
+				member[field] = int(member[field])
 		_normalize(organizations[org_id])
 	for district in districts:
 		district.businesses = int(district.businesses)
@@ -473,10 +601,58 @@ func restore_data(data: Variant) -> bool:
 		entry.day = int(entry.day)
 	request_pending = data.request_pending
 	request_name = data.request_name
+	request_member_id = int(data.request_member_id)
+	next_member_id = int(data.next_member_id)
 	rng.state = int(data.rng_state)
 	ai_decisions.clear()
 	member_changes.clear()
 	return true
+
+func _migrate_v1(original: Dictionary) -> Dictionary:
+	# Build a candidate without changing live state or advancing simulation RNG.
+	var legacy_ids := ["navarro", "romano", "moretti"]
+	var legacy_names := ["Navarro Organization", "Romano Crew", "Moretti Syndicate"]
+	if not original.get("organizations") is Dictionary or original.organizations.size() != 3 or not original.get("districts") is Array or not original.get("events") is Array:
+		return {}
+	if not original.get("request_name") is String or not original.get("request_pending") is bool:
+		return {}
+	var data := original.duplicate(true)
+	var id := 1
+	for i in range(legacy_ids.size()):
+		var org: Variant = data.organizations.get(legacy_ids[i])
+		if not org is Dictionary or org.get("name") != legacy_names[i]:
+			return {}
+		if not _integer(org.get("members"), 1, 60) or not _integer(org.get("loyalty"), 0, 100):
+			return {}
+		org.roster = Member.starting_roster(int(org.members), int(org.loyalty), id, i == 0)
+		for member in org.roster:
+			member.loyalty = int(org.loyalty)
+		id += int(org.members)
+	data.organizations[PLAYER] = data.organizations.navarro
+	data.organizations.erase("navarro")
+	data.organizations[PLAYER].name = "Player"
+	for district in data.districts:
+		if district is Dictionary and district.get("owner") == "navarro":
+			district.owner = PLAYER
+	for entry in data.events:
+		if entry is Dictionary and entry.get("text") is String:
+			entry.text = entry.text.replace("Navarro Organization", "Player").replace("Navarro", "Player")
+	var requester: Dictionary = data.organizations[PLAYER].roster[0]
+	for member in data.organizations[PLAYER].roster:
+		if Member.full_name(member) == data.request_name:
+			requester = member
+			break
+	if data.request_pending and Member.full_name(requester) != data.request_name:
+		var parts: PackedStringArray = data.request_name.split(" ", false, 1)
+		if parts.size() != 2 or not _valid_name(parts[0]) or not _valid_name(parts[1]):
+			return {}
+		requester.first_name = parts[0]
+		requester.last_name = parts[1]
+	data.request_name = Member.full_name(requester)
+	data.request_member_id = int(requester.id)
+	data.next_member_id = id
+	data.version = SAVE_VERSION
+	return data
 
 static func _integer(value: Variant, minimum: int, maximum: int) -> bool:
 	if not (value is int or value is float):

@@ -3,6 +3,7 @@ extends Control
 const World = preload("res://game/simulation/world_state.gd")
 const CityMap = preload("res://game/ui/city_map.gd")
 const DebugPanel = preload("res://game/ui/debug_panel.gd")
+const MembersPage = preload("res://game/ui/members_page.gd")
 const TEXT := Color("#e3e8ee")
 const MUTED := Color("#8996a7")
 const GOLD := Color("#dfa65b")
@@ -34,6 +35,8 @@ var action_buttons: Dictionary = {}
 var reset_dialog: ConfirmationDialog
 var debug_panel: Control
 var debug_button: Button
+var members_page: Control
+var members_button: LinkButton
 
 func _ready() -> void:
 	_build_theme()
@@ -135,7 +138,7 @@ func _build_ui() -> void:
 	brand.add_child(_label("UNDERWORLD", 28, GOLD))
 	brand.add_child(_label("A living city. A fragile empire.", 13, MUTED))
 	_spacer(header)
-	var tag := _label("SIMULATION PROTOTYPE  /  0.1", 11, MUTED)
+	var tag := _label("PROTOTYPE  /  0.2.0 DEV", 11, MUTED)
 	tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	header.add_child(tag)
 	header.add_child(_button("Save", _save, "Save the city, orders, and random state locally."))
@@ -178,7 +181,7 @@ func _build_ui() -> void:
 	map.district_selected.connect(_select_district)
 	map_card.add_child(map)
 	var legend := _row(map_card, 18)
-	for item in [["● Navarro", GOLD], ["● Romano", Color("#aa8ccb")], ["● Moretti", Color("#69b4b0")], ["□ Independent", MUTED], ["● Surveillance", Color("#e07973")]]:
+	for item in [["● Player", GOLD], ["● Romano", Color("#aa8ccb")], ["● Moretti", Color("#69b4b0")], ["□ Independent", MUTED], ["● Surveillance", Color("#e07973")]]:
 		legend.add_child(_label(item[0], 12, item[1]))
 	district_label = _label("", 13)
 	district_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -188,7 +191,14 @@ func _build_ui() -> void:
 	var org_card := _card(middle)
 	org_card.add_theme_constant_override("separation", 7)
 	org_card.get_parent().custom_minimum_size.x = 340
-	org_card.add_child(_label("NAVARRO ORGANIZATION", 17, GOLD))
+	org_card.add_child(_label("PLAYER", 17, GOLD))
+	members_button = LinkButton.new()
+	members_button.add_theme_font_size_override("font_size", 16)
+	members_button.add_theme_color_override("font_color", GOLD)
+	members_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	members_button.tooltip_text = "Open the roster and click a member to inspect their name, age, and loyalty."
+	members_button.pressed.connect(func() -> void: _open_members())
+	org_card.add_child(members_button)
 	org_stats = _label("", 16)
 	org_stats.add_theme_constant_override("line_spacing", 3)
 	org_card.add_child(org_stats)
@@ -265,6 +275,9 @@ func _build_ui() -> void:
 	debug_panel = DebugPanel.new()
 	debug_panel.host = self
 	add_child(debug_panel)
+	members_page = MembersPage.new()
+	members_page.host = self
+	add_child(members_page)
 
 func _metric(parent: Node, heading: String, color: Color) -> Label:
 	var column := VBoxContainer.new()
@@ -283,8 +296,9 @@ func _refresh() -> void:
 	influence_label.text = str(int(org.influence))
 	date_label.text = "DAY %02d  ·  %s" % [world.day, ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"][(world.day - 1) % 7]]
 	orders_label.text = "%d / 2 orders available" % world.orders
-	org_stats.text = "Members       %d\nBusinesses    %d\nTerritory     %.1f%%\nRivals        2" % [org.members, world.businesses(), world.territory() * 100.0 / 24.0]
-	loyalty_label.text = "MEMBER LOYALTY                              %d%%" % org.loyalty
+	members_button.text = "Members       %d   →" % org.members
+	org_stats.text = "Businesses    %d\nTerritory     %.1f%%\nRivals        2" % [world.businesses(), world.territory() * 100.0 / 24.0]
+	loyalty_label.text = "AVERAGE LOYALTY                           %d%%" % org.loyalty
 	loyalty_bar.value = org.loyalty
 	var net: int = world.daily_income() - world.daily_payroll()
 	accounts_label.text = "Daily net  %s$%s   ·   Market %d%%\nIncome $%s  /  Payroll $%s" % ["+" if net >= 0 else "", World.money(net), world.market, World.money(world.daily_income()), World.money(world.daily_payroll())]
@@ -309,6 +323,11 @@ func _refresh() -> void:
 	events_label.text = log_text
 	if debug_panel != null and debug_panel.visible:
 		debug_panel.refresh()
+	if members_page != null and members_page.visible:
+		members_page.refresh()
+
+func _open_members(faction: String = World.PLAYER, edit: bool = false) -> void:
+	members_page.open(faction, edit)
 
 func _action_tooltip(action: String) -> String:
 	match action:
@@ -378,19 +397,26 @@ func _status(message: String, error: bool = false) -> void:
 func _input(event: InputEvent) -> void:
 	# Keep keyboard navigation on the editor while its overlay is open.
 	# A previously focused gameplay button must not accept Enter/Space.
-	if debug_panel.visible and event is InputEventKey:
+	var overlay: Control = members_page if members_page.visible else debug_panel if debug_panel.visible else null
+	if overlay != null and event is InputEventKey:
 		var focused := get_viewport().gui_get_focus_owner()
-		if focused != null and not debug_panel.is_ancestor_of(focused):
-			debug_panel.faction_picker.grab_focus()
+		if focused != null and not overlay.is_ancestor_of(focused):
+			if members_page.visible:
+				members_page.member_tree.grab_focus()
+			else:
+				debug_panel.faction_picker.grab_focus()
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_F3 and not reset_dialog.visible:
-			debug_panel.toggle()
+			if members_page.visible:
+				members_page.debug_toggle.button_pressed = not members_page.debug_toggle.button_pressed
+			else:
+				debug_panel.toggle()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_ESCAPE and debug_panel.visible:
-			debug_panel.close()
+		elif event.keycode == KEY_ESCAPE and overlay != null:
+			overlay.close()
 			get_viewport().set_input_as_handled()
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE and not reset_dialog.visible and not debug_panel.visible:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE and not reset_dialog.visible and not debug_panel.visible and not members_page.visible:
 		_advance()
 		get_viewport().set_input_as_handled()
