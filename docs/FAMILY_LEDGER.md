@@ -70,3 +70,10 @@ The [approved pixel Family Ledger concept](concepts/README.md#pixel-family-ledge
 explores bitmap lettering, pixel portraits, and shaped notebook controls for the
 Crew, Profile, and Assignments flow. Its skills and assignments are design
 proposals for future implementation.
+
+All [pixel palette variants](concepts/README.md#approved-pixel-palettes) are
+approved as concept art. **02 Tobacco & Teal** is the selected main-game design
+direction; the other palettes are retained for potential customization or
+class-specific presentation. These decisions do not change the current runtime
+theme. See [mobile-first requirements](MOBILE_FIRST.md) for the proposed next
+implementation priorities.

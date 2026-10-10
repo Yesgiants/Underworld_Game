@@ -37,3 +37,25 @@ The member flow runs from **Crew** to **Profile** to **Assignments**:
 Skills (Earning, Management, and Negotiation) and job assignments are proposed
 mechanics shown for design exploration. They are not implemented in the game.
 This image records the approved visual direction rather than a game screenshot.
+
+## Approved pixel palettes
+
+All three palette variants are approved and retained for potential customization
+or class-specific presentation. **02 Tobacco & Teal is the chosen main-game
+design direction.** The runtime theme has not been replaced by these mockups.
+
+![Approved pixel palette comparison](pixel_palette_studies.png)
+
+| Variant | Palette | Intended use |
+| --- | --- | --- |
+| 01 Midnight Club | Navy, ivory, antique gold | Optional future customization or class palette |
+| **02 Tobacco & Teal** | **Espresso leather, warm parchment, deep teal, copper** | **Main-game visual direction** |
+| 03 Black Ink | Charcoal, grey-ivory, burgundy, pewter | Optional future customization or class palette |
+
+The same Crew layout is repeated to compare colors. Palette selection should be
+cosmetic; ownership, availability, warnings, and loyalty need explicit labels or
+icons so their meaning survives color changes. Any future class mechanics remain
+a separate design decision.
+
+The [mobile-first requirements](../MOBILE_FIRST.md) record the proposed technical
+and interaction foundations for this direction.
