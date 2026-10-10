@@ -3,8 +3,8 @@ extends Control
 
 const World = preload("res://game/simulation/world_state.gd")
 const Member = preload("res://game/simulation/member_data.gd")
-const GOLD := Color("#dfa65b")
-const MUTED := Color("#8996a7")
+const GOLD := Color("#742d36")
+const MUTED := Color("#71634f")
 
 var host
 var org_id: String = World.PLAYER
@@ -31,7 +31,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var scrim := ColorRect.new()
-	scrim.color = Color(0.015, 0.02, 0.03, 0.92)
+	scrim.color = Color(0.04, 0.08, 0.06, 0.88)
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(scrim)
 	var panel := PanelContainer.new()
@@ -43,7 +43,7 @@ func _ready() -> void:
 	panel.offset_right = 520
 	panel.offset_top = -410
 	panel.offset_bottom = 410
-	panel.add_theme_stylebox_override("panel", host._style(Color("#131b25"), Color("#354150"), 7, 20, 20))
+	panel.add_theme_stylebox_override("panel", host._style(Color("#f2e5ca"), Color("#a38b66"), 7, 20, 20))
 	add_child(panel)
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 14)
@@ -76,7 +76,7 @@ func _ready() -> void:
 	member_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	member_tree.add_theme_font_size_override("font_size", 15)
 	member_tree.add_theme_constant_override("v_separation", 10)
-	member_tree.add_theme_stylebox_override("panel", host._style(Color("#101721"), Color("#2b3644"), 4, 8, 8))
+	member_tree.add_theme_stylebox_override("panel", host._style(Color("#f7ecd6"), Color("#b3a284"), 4, 8, 8))
 	for i in range(4):
 		member_tree.set_column_title(i, ["First name", "Last name", "Age", "Loyalty"][i])
 		member_tree.set_column_custom_minimum_width(i, [140, 145, 65, 85][i])
@@ -183,7 +183,7 @@ func refresh() -> void:
 		row.set_text(1, member.last_name)
 		row.set_text(2, str(int(member.age)))
 		row.set_text(3, "%d%%" % member.loyalty)
-		row.set_custom_color(3, Color("#e07973") if int(member.loyalty) < 35 else Color("#69b4b0") if int(member.loyalty) >= 70 else GOLD)
+		row.set_custom_color(3, Color("#742d36") if int(member.loyalty) < 35 else Color("#23483d") if int(member.loyalty) >= 70 else GOLD)
 		if int(member.id) == selected_id:
 			row.select(0)
 	building = false
@@ -221,4 +221,4 @@ func _apply_edits() -> void:
 	var result: Dictionary = host.world.debug_set_member(org_id, selected_id, {"first_name": first_name_edit.text, "last_name": last_name_edit.text, "age": int(age_edit.value), "loyalty": int(loyalty_edit.value)})
 	host._refresh()
 	message_label.text = result.message
-	message_label.add_theme_color_override("font_color", MUTED if result.ok else Color("#e07973"))
+	message_label.add_theme_color_override("font_color", MUTED if result.ok else Color("#742d36"))

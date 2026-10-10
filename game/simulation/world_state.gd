@@ -10,6 +10,9 @@ const ORG_IDS := ["player", "romano", "moretti"]
 const NAMES = Layout.NAMES
 const ACTIONS := ["operation", "claim", "recruit", "business", "lay_low"]
 const COSTS := {"operation": 0, "claim": 6000, "recruit": 2500, "business": 6500, "lay_low": 1800}
+const OPERATION_BASE_MIN := 1900
+const OPERATION_BASE_MAX := 4100
+const OPERATION_BUSINESS_BONUS := 500
 const SAVE_VERSION := 3
 const SAVE_PATH := "user://underworld_save.json"
 const STAT_LIMITS := {"cash": [0, 10000000], "heat": [0, 100], "influence": [0, 999], "members": [1, 60], "loyalty": [0, 100]}
@@ -78,6 +81,12 @@ func daily_income(org_id: String = PLAYER) -> int:
 func daily_payroll(org_id: String = PLAYER) -> int:
 	return int(organizations[org_id].members) * 140
 
+func operation_range(index: int) -> Vector2i:
+	if index < 0 or index >= districts.size():
+		return Vector2i.ZERO
+	var bonus := int(districts[index].businesses) * OPERATION_BUSINESS_BONUS
+	return Vector2i(OPERATION_BASE_MIN + bonus, OPERATION_BASE_MAX + bonus)
+
 func neighbors(index: int) -> Array:
 	return Layout.neighbors(index, city_layout)
 
@@ -134,12 +143,13 @@ func perform_action(action: String, org_id: String = PLAYER, index: int = 7) -> 
 	var message := ""
 	match action:
 		"operation":
-			var earnings := rng.randi_range(1900, 4100)
+			var payout := operation_range(index)
+			var earnings := rng.randi_range(payout.x, payout.y)
 			org.cash += earnings
 			org.heat += 9
 			org.influence += 3
 			district.attention = mini(100, int(district.attention) + 12)
-			message = "%s earned $%s from an operation in %s. Heat +9." % [org.name, money(earnings), district.name]
+			message = "%s earned $%s from an operation in %s (%d businesses: +$%s bonus). Heat +9." % [org.name, money(earnings), district.name, district.businesses, money(int(district.businesses) * OPERATION_BUSINESS_BONUS)]
 		"claim":
 			var previous: String = district.owner
 			var success := previous == "neutral"

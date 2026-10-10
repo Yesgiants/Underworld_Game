@@ -1,14 +1,15 @@
 extends Control
 
 const World = preload("res://game/simulation/world_state.gd")
-const CityMap = preload("res://game/ui/city_map.gd")
+const MapViewport = preload("res://game/ui/map_viewport.gd")
+const Ledger = preload("res://game/ui/ledger_theme.gd")
 const DebugPanel = preload("res://game/ui/debug_panel.gd")
 const MembersPage = preload("res://game/ui/members_page.gd")
 const Layout = preload("res://game/simulation/city_layout.gd")
-const TEXT := Color("#e3e8ee")
-const MUTED := Color("#8996a7")
-const GOLD := Color("#dfa65b")
-const BG := Color("#0d1219")
+const TEXT = Ledger.INK
+const MUTED = Ledger.MUTED
+const GOLD = Ledger.RED
+const BG = Ledger.PAPER
 
 var world = World.new()
 var selected: int = 7
@@ -40,6 +41,10 @@ var members_page: Control
 var members_button: LinkButton
 var map_title: Label
 var map_hint: Label
+var map_view: Control
+var zoom_label: Label
+var operation_note: Label
+var accounts_dialog: AcceptDialog
 
 func _ready() -> void:
 	_build_theme()
@@ -49,59 +54,38 @@ func _ready() -> void:
 	timer.timeout.connect(_advance)
 	add_child(timer)
 	_refresh()
+	map_view.focus_selected()
 	_status("Select a district, issue an order, then advance the day. The city also moves without your orders.")
 
 func _build_theme() -> void:
-	var ui_theme := Theme.new()
-	ui_theme.default_font_size = 14
-	ui_theme.set_color("font_color", "Label", TEXT)
-	ui_theme.set_color("default_color", "RichTextLabel", TEXT)
-	ui_theme.set_color("font_color", "Button", TEXT)
-	ui_theme.set_color("font_disabled_color", "Button", Color("#596574"))
-	ui_theme.set_stylebox("normal", "Button", _style(Color("#202a36"), Color("#354150"), 5, 12, 10))
-	ui_theme.set_stylebox("hover", "Button", _style(Color("#2b3745"), GOLD.darkened(0.3), 5, 12, 10))
-	ui_theme.set_stylebox("pressed", "Button", _style(Color("#37414b"), GOLD, 5, 12, 10))
-	ui_theme.set_stylebox("disabled", "Button", _style(Color("#161e28"), Color("#26303b"), 5, 12, 10))
-	ui_theme.set_stylebox("focus", "Button", _style(Color(0, 0, 0, 0), GOLD, 5, 12, 10))
-	ui_theme.set_stylebox("panel", "TooltipPanel", _style(Color("#242e3a"), Color("#536174"), 5, 10, 8))
-	ui_theme.set_color("font_color", "TooltipLabel", TEXT)
-	ui_theme.set_stylebox("background", "ProgressBar", _style(Color("#27313d"), Color("#27313d"), 3, 0, 0))
-	ui_theme.set_stylebox("fill", "ProgressBar", _style(Color("#69b4b0"), Color("#69b4b0"), 3, 0, 0))
-	theme = ui_theme
+	theme = Ledger.build()
 
 func _style(fill: Color, border: Color, radius: int, horizontal: int, vertical: int) -> StyleBoxFlat:
-	var box := StyleBoxFlat.new()
-	box.bg_color = fill
-	box.border_color = border
-	box.set_border_width_all(1)
-	box.set_corner_radius_all(radius)
-	box.content_margin_left = horizontal
-	box.content_margin_right = horizontal
-	box.content_margin_top = vertical
-	box.content_margin_bottom = vertical
-	return box
+	return Ledger.box(fill, border, radius, horizontal, vertical)
 
 func _label(text: String, font_size: int = 14, color: Color = TEXT) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_font_override("font", Ledger.HEADING if font_size >= 16 else Ledger.SERIF)
 	label.add_theme_color_override("font_color", color)
 	return label
 
 func _button(text: String, callback: Callable, hint: String = "") -> Button:
 	var button := Button.new()
 	button.text = text
+	button.add_theme_font_size_override("font_size", 15)
 	button.tooltip_text = hint
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	button.pressed.connect(callback)
 	return button
 
-func _card(parent: Node, padding: int = 18) -> VBoxContainer:
+func _card(parent: Node, padding: int = 12) -> VBoxContainer:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _style(Color("#131b25"), Color("#2b3644"), 7, padding, padding))
+	panel.add_theme_stylebox_override("panel", _style(Color("#f2e5ca88"), Color("#a38b6670"), 7, padding, padding))
 	parent.add_child(panel)
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 10)
+	content.add_theme_constant_override("separation", 8)
 	panel.add_child(content)
 	return content
 
@@ -118,28 +102,30 @@ func _spacer(parent: Node) -> Control:
 	return spacer
 
 func _build_ui() -> void:
-	var background := ColorRect.new()
-	background.color = BG
+	var background := TextureRect.new()
+	background.texture = preload("res://game/assets/ledger_background.png")
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_SCALE
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
 	var margins := MarginContainer.new()
 	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right"]:
-		margins.add_theme_constant_override("margin_" + side, 26)
-	for side in ["top", "bottom"]:
-		margins.add_theme_constant_override("margin_" + side, 20)
+	margins.add_theme_constant_override("margin_left", 44)
+	margins.add_theme_constant_override("margin_right", 84)
+	margins.add_theme_constant_override("margin_top", 34)
+	margins.add_theme_constant_override("margin_bottom", 58)
 	add_child(margins)
 	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 12)
+	root.add_theme_constant_override("separation", 10)
 	margins.add_child(root)
 
 	var header := _row(root)
 	var brand := VBoxContainer.new()
 	brand.add_theme_constant_override("separation", 1)
 	header.add_child(brand)
-	brand.add_child(_label("UNDERWORLD", 28, GOLD))
-	brand.add_child(_label("A living city. A fragile empire.", 13, MUTED))
+	brand.add_child(_label("UNDERWORLD", 38, TEXT))
+	brand.add_child(_label("—  T H E   F A M I L Y   L E D G E R  —", 11, GOLD))
 	_spacer(header)
 	var tag := _label("PROTOTYPE  /  0.2.0 DEV", 11, MUTED)
 	tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -153,8 +139,8 @@ func _build_ui() -> void:
 	var stats := _card(root, 14)
 	var stats_row := _row(stats, 24)
 	cash_label = _metric(stats_row, "CASH", GOLD)
-	heat_label = _metric(stats_row, "HEAT", Color("#e07973"))
-	influence_label = _metric(stats_row, "INFLUENCE", Color("#a9b9d4"))
+	heat_label = _metric(stats_row, "HEAT", Ledger.RED)
+	influence_label = _metric(stats_row, "INFLUENCE", TEXT)
 	_spacer(stats_row)
 	var time_column := VBoxContainer.new()
 	stats_row.add_child(time_column)
@@ -166,8 +152,7 @@ func _build_ui() -> void:
 	stats_row.add_child(auto_button)
 	next_button = _button("Next day →", _advance, "Advance one day: income, payroll, rival decisions, and police activity. Shortcut: Space.")
 	next_button.name = "NextDay"
-	next_button.add_theme_stylebox_override("normal", _style(GOLD, GOLD, 5, 14, 10))
-	next_button.add_theme_color_override("font_color", BG)
+	Ledger.button_colors(next_button, Color("#c7a363"), TEXT)
 	stats_row.add_child(next_button)
 
 	var middle := _row(root, 14)
@@ -175,27 +160,37 @@ func _build_ui() -> void:
 	var map_card := _card(middle)
 	map_card.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var map_heading := _row(map_card)
-	map_title = _label("", 15)
+	map_title = _label("", 18)
 	map_heading.add_child(map_title)
 	_spacer(map_heading)
-	map_hint = _label("", 10, MUTED)
-	map_heading.add_child(map_hint)
-	map = CityMap.new()
+	map_heading.add_child(_button("−", func() -> void: map_view.set_zoom(map_view.zoom / 1.12), "Zoom out."))
+	zoom_label = _label("70%", 12, MUTED)
+	map_heading.add_child(zoom_label)
+	map_heading.add_child(_button("+", func() -> void: map_view.set_zoom(map_view.zoom * 1.12), "Zoom in."))
+	map_heading.add_child(_button("Fit", func() -> void: map_view.fit_map(), "Show the whole city. Shortcut: Home when the map is focused."))
+	map_heading.add_child(_button("Focus", func() -> void: map_view.focus_selected(), "Center the selected district. Shortcut: F."))
+	map_hint = _label("", 11, MUTED)
+	map_card.add_child(map_hint)
+	map_view = MapViewport.new()
+	map = map_view.map
 	map.world = world
-	map.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	map.district_selected.connect(_select_district)
-	map_card.add_child(map)
+	map_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	map_view.district_selected.connect(_select_district)
+	map_view.view_changed.connect(func() -> void: zoom_label.text = "%d%%" % roundi(map_view.zoom * 100))
+	map_card.add_child(map_view)
 	var legend := _row(map_card, 18)
-	for item in [["● Player", GOLD], ["● Romano", Color("#aa8ccb")], ["● Moretti", Color("#69b4b0")], ["□ Independent", MUTED], ["● Surveillance", Color("#e07973")]]:
+	for item in [["● Player", Color("#976a20")], ["● Romano", Color("#805a87")], ["● Moretti", Ledger.GREEN], ["□ Independent", MUTED], ["● Surveillance", Ledger.RED]]:
 		legend.add_child(_label(item[0], 12, item[1]))
-	district_label = _label("", 13)
-	district_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	district_label.custom_minimum_size.y = 68
-	map_card.add_child(district_label)
+	map_card.add_child(_label("Drag to pan · Wheel to scroll · Ctrl + wheel to zoom · Arrow keys to move", 11, MUTED))
 
-	var org_card := _card(middle)
+	var org_scroll := ScrollContainer.new()
+	org_scroll.custom_minimum_size.x = 300
+	org_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	middle.add_child(org_scroll)
+	var org_card := _card(org_scroll)
+	org_card.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	org_card.add_theme_constant_override("separation", 7)
-	org_card.get_parent().custom_minimum_size.x = 340
+	org_card.get_parent().custom_minimum_size.x = 286
 	org_card.add_child(_label("PLAYER", 17, GOLD))
 	members_button = LinkButton.new()
 	members_button.add_theme_font_size_override("font_size", 16)
@@ -213,13 +208,15 @@ func _build_ui() -> void:
 	loyalty_bar.custom_minimum_size.y = 5
 	loyalty_bar.show_percentage = false
 	org_card.add_child(loyalty_bar)
-	accounts_label = _label("", 12, Color("#69b4b0"))
+	accounts_label = _label("", 13, Ledger.GREEN)
 	accounts_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	org_card.add_child(accounts_label)
 	rivals_label = _label("", 12, MUTED)
 	rivals_label.add_theme_constant_override("line_spacing", 3)
 	org_card.add_child(rivals_label)
-	_spacer(org_card).size_flags_vertical = Control.SIZE_EXPAND_FILL
+	district_label = _label("", 13)
+	district_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	org_card.add_child(district_label)
 	request_label = _label("", 13)
 	request_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	org_card.add_child(request_label)
@@ -229,14 +226,14 @@ func _build_ui() -> void:
 	request_buttons.add_child(request_yes)
 	request_buttons.add_child(_button("Decline", func() -> void: _request(false), "Loyalty −5. Does not use a daily order."))
 
-	var orders_card := _card(root, 12)
+	var orders_card := _card(root, 10)
 	var orders_heading := _row(orders_card)
 	orders_heading.add_child(_label("ISSUE AN ORDER", 12, MUTED))
 	_spacer(orders_heading)
 	orders_heading.add_child(_label("2 PER DAY  /  ORDERS APPLY IMMEDIATELY", 10, MUTED))
 	var actions := _row(orders_card, 10)
 	var definitions := [
-		["operation", "Run operation", "Earn $1,900–4,100 · Heat +9", "Owned district. Immediate revenue adds heat and local attention."],
+		["operation", "Run operation", "", "Owned district. Each local business adds $500 to the payout."],
 		["claim", "Claim district", "$6,000 · Influence +8", "Adjacent district. Independent claims succeed; rival challenges have a 20–80% success chance. Heat +8; payment is spent even if the challenge fails."],
 		["business", "Open business", "$6,500 · Revenue +$650/day", "Owned district, maximum 3 businesses. Revenue varies with market demand."],
 		["recruit", "Recruit member", "$2,500 · Payroll +$140/day", "Add a member to strengthen contested claims."],
@@ -251,20 +248,25 @@ func _build_ui() -> void:
 		var button := _button(entry[1], func() -> void: _act(action), entry[3])
 		button.name = action.capitalize().replace(" ", "")
 		column.add_child(button)
+		if action in ["claim", "recruit"]:
+			Ledger.button_colors(button, Ledger.RED)
 		action_buttons[action] = button
 		var note := _label(entry[2], 11, MUTED)
 		note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		column.add_child(note)
+		if action == "operation":
+			operation_note = note
 
-	var log_card := _card(root, 14)
+	var log_card := _card(root, 10)
 	var log_heading := _row(log_card)
 	log_heading.add_child(_label("EVENTS", 14))
 	_spacer(log_heading)
 	log_heading.add_child(_label("LATEST FIRST  /  THE WORLD KEEPS MOVING", 10, MUTED))
 	events_label = RichTextLabel.new()
 	events_label.bbcode_enabled = true
-	events_label.custom_minimum_size.y = 112
-	events_label.add_theme_font_size_override("normal_font_size", 13)
+	events_label.custom_minimum_size.y = 74
+	events_label.add_theme_font_override("normal_font", Ledger.MONO)
+	events_label.add_theme_font_size_override("normal_font_size", 12)
 	events_label.add_theme_constant_override("line_separation", 5)
 	log_card.add_child(events_label)
 	status_label = _label("", 12, MUTED)
@@ -283,6 +285,32 @@ func _build_ui() -> void:
 	members_page = MembersPage.new()
 	members_page.host = self
 	add_child(members_page)
+	accounts_dialog = AcceptDialog.new()
+	accounts_dialog.title = "The Family Ledger · Accounts"
+	accounts_dialog.min_size = Vector2i(560, 260)
+	add_child(accounts_dialog)
+	var tabs := VBoxContainer.new()
+	tabs.anchor_left = 1
+	tabs.anchor_right = 1
+	tabs.anchor_top = 0.28
+	tabs.offset_left = -76
+	tabs.offset_right = -8
+	tabs.add_theme_constant_override("separation", 12)
+	add_child(tabs)
+	for entry in [["CITY", func() -> void: map_view.grab_focus(); map_view.focus_selected()], ["MEMBERS", func() -> void: _open_members()], ["ACCOUNTS", _open_accounts]]:
+		var tab := _button(entry[0], entry[1])
+		tab.add_theme_font_size_override("font_size", 11)
+		tab.custom_minimum_size.y = 72
+		Ledger.button_colors(tab, Ledger.RED if entry[0] == "CITY" else Ledger.GREEN)
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			var style: StyleBoxFlat = tab.get_theme_stylebox(state).duplicate()
+			style.content_margin_left = 8
+			style.content_margin_right = 8
+			tab.add_theme_stylebox_override(state, style)
+		tabs.add_child(tab)
+	# Overlay pages must be above navigation tabs for drawing and mouse input.
+	move_child(debug_panel, get_child_count() - 1)
+	move_child(members_page, get_child_count() - 1)
 
 func _metric(parent: Node, heading: String, color: Color) -> Label:
 	var column := VBoxContainer.new()
@@ -296,7 +324,9 @@ func _metric(parent: Node, heading: String, color: Color) -> Label:
 
 func _refresh() -> void:
 	map_title.text = Layout.city_name(world.city_layout).to_upper()
-	map_hint.text = "24 DISTRICTS / 2 BRIDGES / CLICK TO INSPECT" if world.city_layout == Layout.IRON_HAVEN else "24 DISTRICTS / ORIGINAL MAP"
+	map_hint.text = "24 DISTRICTS / 2 BRIDGES / CALDER RIVER" if world.city_layout == Layout.IRON_HAVEN else "24 DISTRICTS / ORIGINAL MAP"
+	var payout: Vector2i = world.operation_range(selected)
+	operation_note.text = "$%s–%s · Heat +9" % [World.money(payout.x), World.money(payout.y)]
 	var org: Dictionary = world.organizations[World.PLAYER]
 	cash_label.text = "$" + World.money(int(org.cash))
 	heat_label.text = "%d / 100" % org.heat
@@ -305,7 +335,7 @@ func _refresh() -> void:
 	orders_label.text = "%d / 2 orders available" % world.orders
 	members_button.text = "Members       %d   →" % org.members
 	org_stats.text = "Businesses    %d\nTerritory     %.1f%%\nRivals        2" % [world.businesses(), world.territory() * 100.0 / 24.0]
-	loyalty_label.text = "AVERAGE LOYALTY                           %d%%" % org.loyalty
+	loyalty_label.text = "AVERAGE LOYALTY                  %d%%" % org.loyalty
 	loyalty_bar.value = org.loyalty
 	var net: int = world.daily_income() - world.daily_payroll()
 	accounts_label.text = "Daily net  %s$%s   ·   Market %d%%\nIncome $%s  /  Payroll $%s" % ["+" if net >= 0 else "", World.money(net), world.market, World.money(world.daily_income()), World.money(world.daily_payroll())]
@@ -325,9 +355,9 @@ func _refresh() -> void:
 	map.selected = selected
 	map.queue_redraw()
 	var log_text := ""
-	var colors := {"player": "#dfa65b", "rival": "#aa8ccb", "police": "#e07973", "member": "#a9b9d4", "economy": "#69b4b0", "debug": "#e9c488"}
+	var colors := {"player": "#976a20", "rival": "#805a87", "police": "#742d36", "member": "#52422f", "economy": "#23483d", "debug": "#8e5929"}
 	for entry in world.events:
-		log_text += "[color=#66768c]DAY %02d[/color]  [color=%s]●[/color]  %s\n" % [entry.day, colors[entry.kind], entry.text.replace("[", "[lb]")]
+		log_text += "[color=#71634f]DAY %02d[/color]  [color=%s]●[/color]  %s\n" % [entry.day, colors[entry.kind], entry.text.replace("[", "[lb]")]
 	events_label.text = log_text
 	if debug_panel != null and debug_panel.visible:
 		debug_panel.refresh()
@@ -339,7 +369,9 @@ func _open_members(faction: String = World.PLAYER, edit: bool = false) -> void:
 
 func _action_tooltip(action: String) -> String:
 	match action:
-		"operation": return "Owned district. Earn $1,900–4,100; heat +9 and local attention +12."
+		"operation":
+			var payout: Vector2i = world.operation_range(selected)
+			return "Owned district. Earn $%s–%s: $1,900–4,100 base plus $500 per local business (%d here). Heat +9; local attention +12." % [World.money(payout.x), World.money(payout.y), world.districts[selected].businesses]
 		"claim": return "Costs $6,000. Adjacent independent claims succeed. Rival challenges have 20–80% odds based on members and influence; costs are spent even on failure. Heat +8."
 		"business": return "Costs $6,500. Adds $650 base daily revenue, adjusted by market demand. Maximum 3 per district."
 		"recruit": return "Costs $2,500. Adds a member and $140 daily payroll. Members strengthen territorial challenges."
@@ -386,6 +418,7 @@ func _load() -> void:
 	_pause()
 	var loaded: bool = world.load_game()
 	_refresh()
+	map_view.focus_selected()
 	_status("Saved city restored. Time is paused." if loaded else "No valid save found. Current city was preserved.", not loaded)
 
 func _confirm_reset() -> void:
@@ -396,11 +429,17 @@ func _reset() -> void:
 	world = World.new()
 	selected = 7
 	_refresh()
+	map_view.focus_selected()
 	_status("A new city is ready. Your previous saved game is preserved.")
 
 func _status(message: String, error: bool = false) -> void:
 	status_label.text = message
-	status_label.add_theme_color_override("font_color", Color("#e07973") if error else MUTED)
+	status_label.add_theme_color_override("font_color", Ledger.RED if error else MUTED)
+
+func _open_accounts() -> void:
+	_pause()
+	accounts_dialog.dialog_text = "PLAYER ACCOUNTS\n\nCash on hand: $%s\nBusinesses: %d · Districts: %d\nDaily income: $%s\nDaily payroll: $%s\nDaily net: $%s\nMarket demand: %d%%\n\nOperations earn an extra $500 for each business in the selected district.\nTime remains paused when you close this page." % [World.money(world.organizations[World.PLAYER].cash), world.businesses(), world.territory(), World.money(world.daily_income()), World.money(world.daily_payroll()), World.money(world.daily_income() - world.daily_payroll()), world.market]
+	accounts_dialog.popup_centered()
 
 func _input(event: InputEvent) -> void:
 	# Keep keyboard navigation on the editor while its overlay is open.
@@ -414,7 +453,7 @@ func _input(event: InputEvent) -> void:
 			else:
 				debug_panel.faction_picker.grab_focus()
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_F3 and not reset_dialog.visible:
+		if event.keycode == KEY_F3 and not reset_dialog.visible and not accounts_dialog.visible:
 			if members_page.visible:
 				members_page.debug_toggle.button_pressed = not members_page.debug_toggle.button_pressed
 			else:
@@ -425,6 +464,6 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE and not reset_dialog.visible and not debug_panel.visible and not members_page.visible:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE and not reset_dialog.visible and not accounts_dialog.visible and not debug_panel.visible and not members_page.visible:
 		_advance()
 		get_viewport().set_input_as_handled()

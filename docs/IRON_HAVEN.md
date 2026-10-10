@@ -5,7 +5,11 @@ late 1980s and early 1990s. The **Calder River** separates an older western city
 from the eastern mill belt. Freight yards, working docks, steel mills, brick
 neighborhoods, markets, and hillside homes give each area its character.
 
-![Iron Haven in the playable prototype](iron_haven.png)
+![Iron Haven in the Family Ledger prototype](family_ledger.png)
+
+The interface now uses a 1950s mafia ledger aesthetic. Iron Haven retains its
+24-district industrial geography, with a larger pan-and-zoom map workspace.
+See [the interface and navigation guide](FAMILY_LEDGER.md).
 
 ## Geography and expansion
 
@@ -64,7 +68,8 @@ businesses; Romano starts with 5 districts and 5 businesses; Moretti starts with
 Click a district to inspect its owner, businesses, police attention, bank, and
 local description. Bridge approaches identify their crossing in the inspector
 and hover tooltip. These descriptions are flavor; this iteration uses the same
-income, business, and police rules across all districts.
+income, business, and police rules across all districts. Operations now add
+$500 per business in the selected district to their $1,900–$4,100 base payout.
 
 ## Saved games
 

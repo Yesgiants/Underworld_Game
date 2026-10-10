@@ -2,8 +2,8 @@ extends Control
 ## An explicitly opened, paused-world editor. Mutations go through validated APIs.
 
 const World = preload("res://game/simulation/world_state.gd")
-const GOLD := Color("#dfa65b")
-const MUTED := Color("#8996a7")
+const GOLD := Color("#742d36")
+const MUTED := Color("#71634f")
 
 var host
 var faction_picker: OptionButton
@@ -28,7 +28,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var scrim := ColorRect.new()
-	scrim.color = Color(0.015, 0.02, 0.03, 0.92)
+	scrim.color = Color(0.04, 0.08, 0.06, 0.88)
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(scrim)
 	var panel := PanelContainer.new()
@@ -40,7 +40,7 @@ func _ready() -> void:
 	panel.offset_right = 480
 	panel.offset_top = -430
 	panel.offset_bottom = 430
-	panel.add_theme_stylebox_override("panel", host._style(Color("#131b25"), GOLD.darkened(0.3), 7, 18, 18))
+	panel.add_theme_stylebox_override("panel", host._style(Color("#f2e5ca"), GOLD.darkened(0.3), 7, 18, 18))
 	add_child(panel)
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 10)
@@ -247,5 +247,5 @@ func _advance(days: int) -> void:
 func _result(result: Dictionary) -> void:
 	host._refresh()
 	message_label.text = result.message
-	message_label.add_theme_color_override("font_color", MUTED if result.ok else Color("#e07973"))
+	message_label.add_theme_color_override("font_color", MUTED if result.ok else Color("#742d36"))
 	host._status(result.message, not result.ok)

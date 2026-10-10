@@ -7,6 +7,7 @@ var failures: int = 0
 func _initialize() -> void:
 	_initial_state()
 	_actions_and_orders()
+	_operation_businesses()
 	_economy()
 	_member_requests()
 	_ai_and_police()
@@ -57,7 +58,33 @@ func _actions_and_orders() -> void:
 	expect(not poor.perform_action("claim", "romano", 3).ok and snapshot(poor) == before, "AI uses the same affordability rules")
 	var operation = World.new()
 	expect(operation.perform_action("operation").ok, "Operation can run in an owned district")
-	expect(operation.organizations.player.cash >= 50150 and operation.organizations.player.cash <= 52350 and operation.organizations.player.heat == 45, "Operation pays within its documented range and adds heat")
+	expect(operation.organizations.player.cash >= 51150 and operation.organizations.player.cash <= 53350 and operation.organizations.player.heat == 45, "Operation pays within Downtown's two-business range and adds heat")
+
+func _operation_businesses() -> void:
+	for org_id in World.ORG_IDS:
+		var target := 7 if org_id == World.PLAYER else 0 if org_id == "romano" else 9
+		var baseline = World.new(83)
+		baseline.districts[target].businesses = 0
+		var starting_cash: int = baseline.organizations[org_id].cash
+		expect(baseline.operation_range(target) == Vector2i(1900, 4100), "%s zero-business payout uses the base range" % org_id)
+		expect(baseline.perform_action("operation", org_id, target).ok, "%s can run the zero-business operation" % org_id)
+		var base_profit: int = baseline.organizations[org_id].cash - starting_cash
+		for count in range(1, 4):
+			var developed = World.new(83)
+			developed.districts[target].businesses = count
+			expect(developed.operation_range(target) == Vector2i(1900 + count * 500, 4100 + count * 500), "%s previews %d local businesses" % [org_id, count])
+			var result: Dictionary = developed.perform_action("operation", org_id, target)
+			expect(result.ok and developed.organizations[org_id].cash - starting_cash == base_profit + count * 500, "%s gains exactly $500 per local business with the same random roll" % org_id)
+			expect(developed.organizations[org_id].heat == baseline.organizations[org_id].heat and developed.rng.state == baseline.rng.state, "Business bonus preserves heat consequences and random draw count")
+			expect(result.message.contains("%d businesses" % count) and result.message.contains("bonus"), "Operation result explains the source of the payout")
+	var local_only = World.new(83)
+	local_only.districts[7].businesses = 0
+	local_only.districts[6].businesses = 3
+	expect(local_only.operation_range(7) == Vector2i(1900, 4100), "Businesses elsewhere do not increase the selected district's payout")
+	local_only.districts[7].owner = "romano"
+	var before := snapshot(local_only)
+	expect(not local_only.perform_action("operation", World.PLAYER, 7).ok and snapshot(local_only) == before, "The bonus never enables operations in rival territory")
+	expect(local_only.operation_range(-1) == Vector2i.ZERO and local_only.operation_range(24) == Vector2i.ZERO, "Invalid operation targets have no quoted payout")
 
 func _economy() -> void:
 	var world = World.new()

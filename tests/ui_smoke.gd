@@ -57,7 +57,7 @@ func _run() -> void:
 	var bottom: Rect2 = ui.status_label.get_global_rect()
 	print("UI bounds: viewport %s, footer %s" % [root.size, bottom])
 	expect(bottom.end.y <= root.size.y, "Interface fits inside the viewport vertically")
-	expect(ui.map.get_global_rect().end.x <= ui.org_stats.get_global_rect().position.x, "Map and organization panel do not overlap")
+	expect(ui.map_view.get_global_rect().end.x <= ui.org_stats.get_global_rect().position.x and ui.map_view.clip_contents, "Map workspace clips the enlarged canvas without overlapping the organization panel")
 	ui.auto_button.pressed.emit()
 	var before: Dictionary = ui.world.save_data()
 	ui.debug_button.pressed.emit()

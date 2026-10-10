@@ -2,7 +2,8 @@
 
 **Current development:** v0.2.0-dev. The annotated v0.1.0 tag remains the previous
 prototype snapshot. This iteration adds individual members, the Player name,
-and Iron Haven, a river city with two strategic bridge crossings.
+and Iron Haven, a river city with two strategic bridge crossings. The interface
+now uses the 1950s **Family Ledger** theme, with a separate navigable map canvas.
 
 ## Play the prototype
 
@@ -43,6 +44,10 @@ headlessly.
   button for its requirements and consequences.
 - **Run operation** earns cash and raises heat. **Open business** increases daily
   revenue. **Recruit member** strengthens the organization but increases payroll.
+- Operations pay **$1,900–$4,100 plus $500 for each business in the selected
+  district**. Businesses elsewhere provide no operation bonus. Downtown starts
+  with two businesses, so an operation there pays $2,900–$5,100. Player and rivals
+  use the same formula. The payout quote under Run operation updates on selection.
 - **Claim district** expands into adjacent territory. Independent claims succeed;
   rival challenges depend on relative members and influence. The $6,000 cost is
   spent even if a challenge fails. Existing businesses transfer with a district.
@@ -71,6 +76,32 @@ members, rebuilding takes priority when cash reserves allow it. Normal growth
 has a 40% daily recruitment opportunity, with urgent heat management taking
 precedence. Members can leave because of unpaid payroll or low loyalty, and
 police investigations can detain them. Events show the actual before/after count.
+
+### The Family Ledger and map navigation
+
+The interface uses ivory paper, oxblood leather, forest green and burgundy ink,
+serif headings, typewritten events, and rounded brass-bordered action buttons.
+The Members page, debug editor, and dialogs share the ledger theme. This is a
+visual direction inspired by 1950s mafia films; the simulation still tracks
+abstract days rather than a historical calendar.
+
+The city is a **1600 × 1000 map canvas** inside its own clipped viewport. Panning
+and zooming move only the city; statistics, orders, and the event feed stay fixed.
+The map still has 24 districts and the same bridge connections.
+
+- **Click** a district to inspect it. A drag does not select a district.
+- **Drag** with left, middle, or right mouse button to pan.
+- **Mouse wheel** scrolls vertically; **Shift + wheel** scrolls horizontally.
+- **Ctrl + wheel**, or the **− / +** buttons, zooms around the cursor or view center.
+- **Fit** shows the whole city; **Focus** centers the selected district within map
+  bounds. After clicking the map, arrow keys pan, +/− zoom, Home fits, and F focuses.
+- Horizontal and vertical scrollbars provide the same navigation.
+- Notebook tabs open **City**, **Members**, and **Accounts**. Accounts pauses time
+  and shows the current finances; closing it leaves time paused.
+
+Camera position and zoom are viewing preferences for the current session, not
+simulation inputs. They do not change orders, the city, or its random state.
+See [the current UI preview and navigation guide](docs/FAMILY_LEDGER.md).
 
 ### Debug mode
 
@@ -158,6 +189,7 @@ godot --headless --path . --editor --import --quit
 godot --headless --path . --script tests/run_tests.gd
 godot --headless --path . --script tests/members_tests.gd
 godot --headless --path . --script tests/city_tests.gd
+godot --headless --path . --script tests/navigation_tests.gd
 godot --headless --path . --script tests/ui_smoke.gd
 ```
 
@@ -173,6 +205,10 @@ migration from a save produced with the actual v0.1.0 implementation.
 City tests cover reciprocal and connected geography, bridge-only crossings for
 every faction, rival expansion, map validation, and replay after loading both
 Iron Haven and authentic pre-Iron Haven v0.2 development saves.
+Navigation tests exercise real mouse and keyboard input, transformed district
+selection, scrollbars, zoom bounds, cursor anchoring, drag/click separation,
+overlay input blocking, and unchanged simulation state. Operation checks compare
+the same random roll across all factions and all local business counts.
 
 The implementation lives in `game/simulation/world_state.gd` (world rules),
 `game/ui/city_map.gd` (map drawing and selection), and `game/ui/main.gd` (interface).

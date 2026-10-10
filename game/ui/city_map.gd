@@ -5,14 +5,15 @@ signal district_selected(index: int)
 
 const World = preload("res://game/simulation/world_state.gd")
 const Layout = preload("res://game/simulation/city_layout.gd")
+const Ledger = preload("res://game/ui/ledger_theme.gd")
 const COLORS := {
-	"player": Color("#dfa65b"), "romano": Color("#aa8ccb"),
-	"moretti": Color("#69b4b0"), "neutral": Color("#526071"),
+	"player": Color("#aa7b32"), "romano": Color("#805a87"),
+	"moretti": Color("#3f7562"), "neutral": Color("#8d8777"),
 }
 var world: RefCounted
 var selected: int = 7
 var hovered: int = -1
-var map_font: Font = ThemeDB.fallback_font
+var map_font: Font = Ledger.SERIF
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(620, 258)
@@ -48,31 +49,31 @@ func _draw_river() -> void:
 	var water := left.duplicate()
 	for step in range(right.size() - 1, -1, -1):
 		water.append(right[step])
-	draw_colored_polygon(water, Color("#193241"))
-	draw_polyline(left, Color("#365262"), 2.0, true)
-	draw_polyline(right, Color("#365262"), 2.0, true)
+	draw_colored_polygon(water, Color("#9bb0ae"))
+	draw_polyline(left, Color("#627d7a"), 2.0, true)
+	draw_polyline(right, Color("#627d7a"), 2.0, true)
 	for step in range(12):
 		var y := 34.0 + step * (size.y - 44.0) / 12.0
 		var x := _river_center(y)
-		draw_line(Vector2(x - 12, y), Vector2(x + 9, y), Color("#244554"), 1.0)
-	draw_string(map_font, Vector2(6, 17), "WEST BANK / OLD CITY", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#8996a7"))
-	draw_string(map_font, Vector2(size.x - 145, 17), "EAST BANK / MILL BELT", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#8996a7"))
+		draw_line(Vector2(x - 12, y), Vector2(x + 9, y), Color("#769694"), 1.0)
+	draw_string(map_font, Vector2(8, 20), "WEST BANK / OLD CITY", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Ledger.MUTED)
+	draw_string(map_font, Vector2(size.x - 194, 20), "EAST BANK / MILL BELT", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Ledger.MUTED)
 	var river_text := "CALDER"
-	var width := map_font.get_string_size(river_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-	draw_string(map_font, Vector2(_river_center(17) - width / 2, 17), river_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#90b1c0"))
+	var width := map_font.get_string_size(river_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+	draw_string(map_font, Vector2(_river_center(20) - width / 2, 20), river_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Ledger.GREEN)
 	for bridge in Layout.BRIDGES:
 		var west := cell_rect(bridge.west)
 		var east := cell_rect(bridge.east)
 		var y := west.get_center().y
 		var start := Vector2(west.end.x, y)
 		var finish := Vector2(east.position.x, y)
-		var color := Color("#eed2a4") if selected in [bridge.west, bridge.east] else Color("#81949e")
-		draw_line(start, finish, Color("#0c1720"), 13.0)
+		var color := Ledger.RED if selected in [bridge.west, bridge.east] else Color("#786b56")
+		draw_line(start, finish, Color("#dfceb0"), 18.0)
 		draw_line(start + Vector2(0, -5), finish + Vector2(0, -5), color, 1.5)
 		draw_line(start + Vector2(0, 5), finish + Vector2(0, 5), color, 1.5)
 		draw_line(start, finish, color.darkened(0.45), 4.0)
-		var label_width := map_font.get_string_size(bridge.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-		draw_string(map_font, Vector2((start.x + finish.x - label_width) / 2.0, y - 12), bridge.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#c3cbd6"))
+		var label_width := map_font.get_string_size(bridge.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+		draw_string(map_font, Vector2((start.x + finish.x - label_width) / 2.0, y - 14), bridge.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Ledger.INK)
 
 func district_at(point: Vector2) -> int:
 	if point.x < 0 or point.y < 0 or point.x >= size.x or point.y >= size.y:
@@ -108,32 +109,46 @@ func _gui_input(event: InputEvent) -> void:
 func _draw() -> void:
 	if world == null:
 		return
+	draw_rect(Rect2(Vector2.ZERO, size), Color("#ebddc1"))
+	# Faint survey rules belong to the map canvas and move with it.
+	for x in range(0, int(size.x), 32):
+		draw_line(Vector2(x, 0), Vector2(x, size.y), Color("#dbccb04a"), 1)
+	for y in range(0, int(size.y), 32):
+		draw_line(Vector2(0, y), Vector2(size.x, y), Color("#dbccb04a"), 1)
 	if world.city_layout == Layout.IRON_HAVEN:
 		_draw_river()
 	for i in range(world.districts.size()):
 		var district: Dictionary = world.districts[i]
 		var rect := cell_rect(i)
 		var color: Color = COLORS[district.owner]
-		var fill := Color("#141c25").lerp(color, 0.13 if district.owner != "neutral" else 0.03)
+		var fill := Color("#f3e7cf").lerp(color, 0.28 if district.owner != "neutral" else 0.1)
 		if i == hovered:
-			fill = fill.lightened(0.09)
-		draw_rect(rect, fill)
-		draw_rect(rect, color.darkened(0.56), false, 1.0)
-		# Tiny blocks suggest streets and buildings without implying a detailed map.
-		for block in range(4):
-			var block_size := Vector2(10 + (i + block) % 3 * 4, 10 + (i * 2 + block) % 3 * 3)
-			var position := rect.position + Vector2(8 + block * (rect.size.x - 26) / 4.0, 10)
-			draw_rect(Rect2(position, block_size), color.darkened(0.63))
-		draw_line(rect.position + Vector2(10, 34), rect.position + Vector2(rect.size.x - 10, 34), Color("#29313c"), 1)
-		var marker := rect.position + Vector2(rect.size.x - 15, 15)
+			fill = fill.lightened(0.06)
+		draw_style_box(Ledger.box(fill, color.darkened(0.1), 12, 0, 0), rect)
+		# Blocks, side streets, and mill chimneys make the enlarged city readable.
+		var street_area := rect.size - Vector2(34, 95)
+		for row in range(3):
+			for block in range(5):
+				var block_size := Vector2(street_area.x / 5.0 - 9, street_area.y / 3.0 - 10)
+				var position := rect.position + Vector2(15, 18) + Vector2(block * street_area.x / 5.0, row * street_area.y / 3.0)
+				draw_rect(Rect2(position, block_size), color.lightened(0.45))
+				draw_rect(Rect2(position, block_size), color.darkened(0.05), false, 1)
+				if i in [14, 15, 16, 17, 19, 22] and row == 0:
+					draw_line(position + Vector2(4, 0), position + Vector2(4, -6), color, 3)
+		var marker := rect.position + Vector2(rect.size.x - 18, 18)
 		if district.owner == "neutral":
-			draw_rect(Rect2(marker - Vector2(4, 4), Vector2(8, 8)), color, false, 1.0)
+			draw_rect(Rect2(marker - Vector2(5, 5), Vector2(10, 10)), color, false, 1.5)
 		else:
-			draw_circle(marker, 4, color)
+			draw_circle(marker, 6, color)
 		if int(district.attention) >= 60:
-			draw_circle(rect.position + Vector2(rect.size.x - 15, 31), 3, Color("#e07973"))
-		var label_size := 11 if world.city_layout == Layout.IRON_HAVEN else 12
+			draw_circle(rect.position + Vector2(rect.size.x - 18, 38), 5, Ledger.RED)
+		var label_size := 22
 		var label_width := map_font.get_string_size(district.name, HORIZONTAL_ALIGNMENT_LEFT, -1, label_size).x
-		draw_string(map_font, rect.position + Vector2((rect.size.x - label_width) / 2.0, rect.size.y - 10), district.name, HORIZONTAL_ALIGNMENT_LEFT, -1, label_size, Color("#c3cbd6"))
+		draw_string(map_font, rect.position + Vector2((rect.size.x - label_width) / 2.0, rect.size.y - 36), district.name, HORIZONTAL_ALIGNMENT_LEFT, -1, label_size, Ledger.INK)
+		var businesses_text := "%d %s" % [district.businesses, "business" if int(district.businesses) == 1 else "businesses"]
+		var detail_width := map_font.get_string_size(businesses_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
+		draw_string(map_font, rect.position + Vector2((rect.size.x - detail_width) / 2.0, rect.size.y - 14), businesses_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Ledger.MUTED)
 		if i == selected:
-			draw_rect(rect.grow(1), Color("#eed2a4"), false, 2.0)
+			var selection := Ledger.box(Color(0, 0, 0, 0), Ledger.RED, 18, 0, 0)
+			selection.set_border_width_all(4)
+			draw_style_box(selection, rect.grow(2))
