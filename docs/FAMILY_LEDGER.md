@@ -65,3 +65,8 @@ and bundled font licensing are documented in [the asset attribution](../game/ass
 
 The [mobile concept art](concepts/README.md) preserves the approved portrait City,
 Ledger, and Members layouts for future implementation.
+
+The [approved pixel Family Ledger concept](concepts/README.md#pixel-family-ledger)
+explores bitmap lettering, pixel portraits, and shaped notebook controls for the
+Crew, Profile, and Assignments flow. Its skills and assignments are design
+proposals for future implementation.
