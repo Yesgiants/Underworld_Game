@@ -60,3 +60,8 @@ demand.
 
 The game remains v0.2.0-dev; this update does not create a release tag. Assets
 and bundled font licensing are documented in [the asset attribution](../game/assets/ATTRIBUTION.md).
+
+## Approved mobile direction
+
+The [mobile concept art](concepts/README.md) preserves the approved portrait City,
+Ledger, and Members layouts for future implementation.
