@@ -3,10 +3,14 @@
 Underworld is intended to release on mobile first. The approved visual direction
 is the [pixel Family Ledger in 02 Tobacco & Teal](concepts/README.md#approved-pixel-palettes).
 Midnight Club and Black Ink are retained as possible customization or class
-palettes. This document records recommendations, not completed mobile support.
-The launch platform order, minimum devices, and monetization are still undecided.
+palettes. This document records the original foundations and future release
+requirements. The first [playable Android preview](MOBILE_PREVIEW.md) now
+implements the pixel phone layout, touch map, autosaving, backup recovery, and
+lifecycle restoration.
+The first preview targets ARM64 Android 7.0 and newer. Physical-device release
+coverage, the iOS launch schedule, and monetization are still undecided.
 
-## Current foundation and gaps
+## Foundation and gaps before the phone preview
 
 The Godot 4.6 project already separates its turn-based simulation from the UI,
 uses seeded, saved random state, migrates older saves, writes saves through a

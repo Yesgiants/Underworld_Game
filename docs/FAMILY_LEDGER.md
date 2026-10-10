@@ -74,6 +74,7 @@ proposals for future implementation.
 All [pixel palette variants](concepts/README.md#approved-pixel-palettes) are
 approved as concept art. **02 Tobacco & Teal** is the selected main-game design
 direction; the other palettes are retained for potential customization or
-class-specific presentation. These decisions do not change the current runtime
-theme. See [mobile-first requirements](MOBILE_FIRST.md) for the proposed next
-implementation priorities.
+class-specific presentation. The [playable mobile preview](MOBILE_PREVIEW.md)
+now implements Tobacco & Teal with pixel portraits and shaped notebook controls.
+The desktop interface described above remains available in its original scene.
+See [mobile-first requirements](MOBILE_FIRST.md) for further release priorities.

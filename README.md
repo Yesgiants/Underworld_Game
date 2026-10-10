@@ -3,7 +3,11 @@
 **Current development:** v0.2.0-dev. The annotated v0.1.0 tag remains the previous
 prototype snapshot. This iteration adds individual members, the Player name,
 and Iron Haven, a river city with two strategic bridge crossings. The interface
-now uses the 1950s **Family Ledger** theme, with a separate navigable map canvas.
+now defaults to the mobile **pixel Family Ledger** in **02 Tobacco & Teal**, with
+touch navigation, automatic saves, and the existing simulated world.
+
+**[Download the Android phone preview](builds/README.md)** ·
+[Playable mobile screens and controls](docs/MOBILE_PREVIEW.md)
 
 ## Play the prototype
 
@@ -40,8 +44,8 @@ headlessly.
   from the eastern mill belt. Cross-bank claims must follow **City Bridge**
   (City Hall ↔ East Market) or **Foundry Bridge** (Southbank ↔ Iron Gate).
   Rival AI uses those same connections. Click bridge approaches to inspect them.
-- Issue up to **two orders per day**. Orders apply immediately. Hover over a
-  button for its requirements and consequences.
+- Open **Orders** after selecting a district. Issue up to **two orders per day**;
+  requirements and consequences are visible beside the actions.
 - **Run operation** earns cash and raises heat. **Open business** increases daily
   revenue. **Recruit member** strengthens the organization but increases payroll.
 - Operations pay **$1,900–$4,100 plus $500 for each business in the selected
@@ -58,11 +62,13 @@ headlessly.
   investigations.
 - Review promotion requests to manage loyalty. Each promotion costs $1,200 and
   grants the requesting person 6 loyalty; declining reduces that person's loyalty by 5. Member decisions do not use daily orders.
-- Click **Next day** (or Space when no button has focus) to settle accounts and let
+- Tap **Next day** (or Space when no button has focus) to settle accounts and let
   rivals act. **Run time** advances a day every 2.5 seconds; click again to pause.
-- **Save** and **Load** keep one local save under Godot's `user://` directory,
-  including the random state. Loading pauses time. **New city** asks before
-  discarding unsaved progress and preserves your saved game.
+- The phone interface autosaves after orders, day settlement, and confirmed
+  debug changes, including random state. Backgrounding pauses and saves;
+  restarting restores progress with time paused. **Menu** also offers Save and
+  Load. A validated prior save provides corruption recovery. **New city** asks
+  before replacing and autosaving the campaign.
 
 This is an open-ended sandbox, with no victory condition yet. The simulation is
 turn based; automatic time is a convenience for advancing the same daily steps.
@@ -77,13 +83,16 @@ has a 40% daily recruitment opportunity, with urgent heat management taking
 precedence. Members can leave because of unpaid payroll or low loyalty, and
 police investigations can detain them. Events show the actual before/after count.
 
-### The Family Ledger and map navigation
+### The earlier desktop Family Ledger and map navigation
 
 The interface uses ivory paper, oxblood leather, forest green and burgundy ink,
 serif headings, typewritten events, and rounded brass-bordered action buttons.
 The Members page, debug editor, and dialogs share the ledger theme. This is a
 visual direction inspired by 1950s mafia films; the simulation still tracks
 abstract days rather than a historical calendar.
+
+This earlier desktop layout remains available in `game/ui/main.tscn`; the default
+phone scene and its touch controls are documented in [the mobile preview](docs/MOBILE_PREVIEW.md).
 
 The city is a **1600 × 1000 map canvas** inside its own clipped viewport. Panning
 and zooming move only the city; statistics, orders, and the event feed stay fixed.

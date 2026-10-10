@@ -18,6 +18,9 @@ var updating: bool = false
 var dragging: bool = false
 var drag_button: int = 0
 var drag_distance: float = 0.0
+var touches: Dictionary = {}
+var touch_distance: float = 0.0
+var touch_gesture: bool = false
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(560, 220)
@@ -112,6 +115,47 @@ func focus_selected() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if map.world == null:
 		return
+	if event is InputEventScreenTouch:
+		if event.canceled:
+			cancel_gesture()
+		elif event.pressed:
+			if touches.is_empty():
+				touch_distance = 0
+				touch_gesture = false
+			touches[event.index] = event.position
+			if touches.size() > 1:
+				touch_gesture = true
+		elif touches.has(event.index):
+			if touches.size() == 1 and not touch_gesture and touch_distance < 8:
+				var index: int = map.district_at(view_to_map(event.position))
+				if index >= 0:
+					map.selected = index
+					district_selected.emit(index)
+					map.queue_redraw()
+			touches.erase(event.index)
+		accept_event()
+		return
+	if event is InputEventScreenDrag and touches.has(event.index):
+		var previous: Vector2 = touches[event.index]
+		if touches.size() == 2:
+			var other: Vector2 = touches[touches.keys()[0] if touches.keys()[1] == event.index else touches.keys()[1]]
+			var old_center := (previous + other) * 0.5
+			var new_center: Vector2 = (event.position + other) * 0.5
+			var old_distance := previous.distance_to(other)
+			if old_distance > 1:
+				set_zoom(zoom * event.position.distance_to(other) / old_distance, old_center)
+			pan(old_center - new_center)
+		elif touches.size() == 1:
+			touch_distance += event.position.distance_to(previous)
+			if touch_distance >= 8 or touch_gesture:
+				touch_gesture = true
+				pan(previous - event.position)
+		touches[event.index] = event.position
+		accept_event()
+		return
+	# Buttons still receive emulated mouse taps; the map uses native touch events.
+	if event is InputEventMouse and event.device == InputEvent.DEVICE_ID_EMULATION:
+		return
 	if event is InputEventMouseButton:
 		if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT] and event.pressed:
 			var direction := -1.0 if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_LEFT] else 1.0
@@ -150,6 +194,7 @@ func _gui_input(event: InputEvent) -> void:
 			map._gui_input(local)
 			tooltip_text = map.tooltip_text
 		accept_event()
+
 	if event is InputEventKey and event.pressed:
 		match event.keycode:
 			KEY_LEFT: pan(Vector2(-70, 0))
@@ -162,3 +207,10 @@ func _gui_input(event: InputEvent) -> void:
 			KEY_F: focus_selected()
 			_: return
 		accept_event()
+
+func cancel_gesture() -> void:
+	touches.clear()
+	touch_gesture = false
+	touch_distance = 0
+	dragging = false
+	drag_distance = 0

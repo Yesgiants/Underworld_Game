@@ -15,6 +15,7 @@ func expect(condition: bool, message: String) -> void:
 
 func _run() -> void:
 	# --script uses a bare SceneTree rather than the project's main viewport.
+	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1280, 960)
 	var ui = Main.instantiate()
 	root.add_child(ui)

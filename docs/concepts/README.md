@@ -42,7 +42,8 @@ This image records the approved visual direction rather than a game screenshot.
 
 All three palette variants are approved and retained for potential customization
 or class-specific presentation. **02 Tobacco & Teal is the chosen main-game
-design direction.** The runtime theme has not been replaced by these mockups.
+design direction.** Its colors and pixel UI are now used by the
+[playable phone preview](../MOBILE_PREVIEW.md); this comparison remains concept art.
 
 ![Approved pixel palette comparison](pixel_palette_studies.png)
 

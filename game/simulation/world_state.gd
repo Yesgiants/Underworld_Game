@@ -506,15 +506,28 @@ func save_game(path: String = SAVE_PATH) -> Error:
 	file.close()
 	if write_error != OK:
 		return write_error
+	# Keep only validated snapshots as backups; never copy corruption over recovery.
+	if FileAccess.file_exists(path):
+		var parsed := JSON.new()
+		var valid_json := parsed.parse(FileAccess.get_file_as_string(path)) == OK
+		var validator = get_script().new()
+		if valid_json and validator.restore_data(parsed.data):
+			var backup_error := DirAccess.copy_absolute(ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(path + ".bak.tmp"))
+			if backup_error != OK:
+				return backup_error
+			backup_error = DirAccess.rename_absolute(ProjectSettings.globalize_path(path + ".bak.tmp"), ProjectSettings.globalize_path(path + ".bak"))
+			if backup_error != OK:
+				return backup_error
 	return DirAccess.rename_absolute(ProjectSettings.globalize_path(path + ".tmp"), ProjectSettings.globalize_path(path))
 
 func load_game(path: String = SAVE_PATH) -> bool:
-	if not FileAccess.file_exists(path):
-		return false
-	var json := JSON.new()
-	if json.parse(FileAccess.get_file_as_string(path)) != OK:
-		return false
-	return restore_data(json.data)
+	for candidate in [path, path + ".bak"]:
+		if not FileAccess.file_exists(candidate):
+			continue
+		var json := JSON.new()
+		if json.parse(FileAccess.get_file_as_string(candidate)) == OK and restore_data(json.data):
+			return true
+	return false
 
 func restore_data(data: Variant) -> bool:
 	# Validate the complete save before touching the live world.
